@@ -1,0 +1,58 @@
+package com.example.tetrisapp.feature_game.domain.model
+
+import android.icu.text.Transliterator.Position
+import androidx.compose.ui.graphics.Color
+
+
+enum class MinoType(
+    val color: Color,
+    val shapes: List<List<Pair<Int,Int>>>,
+){
+    // TODO: 出現するときに一マス空いていたり、回転が不自然になっているので直しておく
+    // 回転に対して右回り
+    I(Color.Cyan, listOf(
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(3, 1)), // 0°
+        listOf(Pair(2, 0), Pair(2, 1), Pair(2, 2), Pair(2, 3)), // 90°
+        listOf(Pair(0, 2), Pair(1, 2), Pair(2, 2), Pair(3, 2)), // 180°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(1, 3))  // 270°
+    )),
+    O(Color.Yellow, listOf(
+        listOf(Pair(1, 1), Pair(1, 2), Pair(2, 1), Pair(2, 2)) // 同一形状
+    )),
+    T(Color.Magenta, listOf(
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
+        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
+        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(1, 2)),
+        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
+    )),
+    S(Color.Green, listOf(
+        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)),
+        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2)),
+        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)),
+        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2))
+    )),
+    Z(Color.Red, listOf(
+        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
+        listOf(Pair(2, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
+        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
+        listOf(Pair(2, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2))
+    )),
+    J(Color.Blue, listOf(
+        listOf(Pair(0, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
+        listOf(Pair(1, 0), Pair(2, 0), Pair(1, 1), Pair(1, 2)),
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(2, 2)),
+        listOf(Pair(1, 0), Pair(1, 1), Pair(0, 2), Pair(1, 2))
+    )),
+    L(Color.Gray, listOf(
+        listOf(Pair(2, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
+        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(0, 2)),
+        listOf(Pair(0, 0), Pair(1, 0), Pair(1, 1), Pair(1, 2))
+    ));
+}
+
+interface TetriMinoType{
+    val rotation: Int;
+    val type: MinoType;
+    val position: Pair<Int,Int>;
+}

@@ -1,0 +1,38 @@
+# ビルドアーティファクト
+/build/
+*/build/
+
+# IDEの設定
+/.idea/
+/*.iml
+.gradle/
+/local.properties
+
+# 環境設定
+.env
+
+# キャッシュ
+/.gradle/
+*.log
+*.hprof
+
+# Android Studioのキャッシュ
+/.externalNativeBuild/
+/.cxx/
+
+# デバッグファイル
+*.apk
+*.ap_
+
+# テストレポート
+/test-results/
+*/test-results/
+
+# ユーザー特有の設定
+*.DS_Store
+*.swp
+*.tmp
+*.bak
+
+# フォルダの無視
+/tmp/
