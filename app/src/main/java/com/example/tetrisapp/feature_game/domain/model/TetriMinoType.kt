@@ -16,39 +16,46 @@ enum class MinoType(
         listOf(Pair(0, 2), Pair(1, 2), Pair(2, 2), Pair(3, 2)), // 180°
         listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(1, 3))  // 270°
     )),
+
     O(Color.Yellow, listOf(
-        listOf(Pair(1, 1), Pair(1, 2), Pair(2, 1), Pair(2, 2)) // 同一形状
+        listOf(Pair(1, 1), Pair(1, 2), Pair(2, 1), Pair(2, 2)) // 回転不要
     )),
+
     T(Color.Magenta, listOf(
-        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
-        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
-        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(1, 2)),
-        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
+        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)), // 0°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(2, 1)), // 90°
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(1, 2)), // 180°
+        listOf(Pair(1, 0), Pair(0, 1), Pair(1, 1), Pair(1, 2))  // 270°
     )),
+
     S(Color.Green, listOf(
-        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)),
-        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2)),
-        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)),
-        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2))
+        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)), // 0°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2)), // 90°
+        listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)), // 180°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2))  // 270°
     )),
+
     Z(Color.Red, listOf(
-        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
-        listOf(Pair(2, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2)),
-        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
-        listOf(Pair(2, 0), Pair(1, 1), Pair(2, 1), Pair(1, 2))
+        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)), // 0°
+        listOf(Pair(2, 0), Pair(2, 1), Pair(1, 1), Pair(1, 2)), // 90°
+        listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)), // 180°
+        listOf(Pair(2, 0), Pair(2, 1), Pair(1, 1), Pair(1, 2))  // 270°
     )),
+
     J(Color.Blue, listOf(
-        listOf(Pair(0, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
-        listOf(Pair(1, 0), Pair(2, 0), Pair(1, 1), Pair(1, 2)),
-        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(2, 2)),
-        listOf(Pair(1, 0), Pair(1, 1), Pair(0, 2), Pair(1, 2))
+        listOf(Pair(0, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)), // 0°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(2, 0)), // 90°
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(2, 2)), // 180°
+        listOf(Pair(0, 2), Pair(1, 0), Pair(1, 1), Pair(1, 2))  // 270°
     )),
+
     L(Color.Gray, listOf(
-        listOf(Pair(2, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)),
-        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(2, 2)),
-        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(0, 2)),
-        listOf(Pair(0, 0), Pair(1, 0), Pair(1, 1), Pair(1, 2))
-    ));
+        listOf(Pair(2, 0), Pair(0, 1), Pair(1, 1), Pair(2, 1)), // 0°
+        listOf(Pair(1, 0), Pair(1, 1), Pair(1, 2), Pair(2, 2)), // 90°
+        listOf(Pair(0, 1), Pair(1, 1), Pair(2, 1), Pair(0, 2)), // 180°
+        listOf(Pair(0, 0), Pair(1, 0), Pair(1, 1), Pair(1, 2))  // 270°
+    ))
+
 }
 
 interface TetriMinoType{

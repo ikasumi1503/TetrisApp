@@ -23,15 +23,19 @@ class GameViewModel : ViewModel() {
     // ViewModelはデータを入れる箱で、LiveDataはそのデータを反映させる液晶の役割
     private val _board = MutableLiveData(Board())
     // TODO: ここに_tetriMino入れる
-    private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.O)) // TODO: 初期値をどこかでランダムに代入したい
+    private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T)) // TODO: 初期値をどこかでランダムに代入したい
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
     val board: LiveData<Board> = _board
     val tetriMino: LiveData<TetriMino> = _tetriMino
 
+    // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
+    // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
+    // UIがわで使うのはgameViewModel.createBoardWithUpdateCellsとする
     fun createBoardWithUpdateCells(cell: Cell){
-        _board.value = _board.value?.createBoardWithUpdateCells(cell)
+        // newCell = cell じゃなくてcellをそのまま入れてもいいけど、newCell = cellのほうが分かりやすい・統一感ある
+        _board.value = _board.value?.createBoardWithUpdateCells(newCell = cell)
     }
 
     fun updateTetriMino(mino: TetriMino){
