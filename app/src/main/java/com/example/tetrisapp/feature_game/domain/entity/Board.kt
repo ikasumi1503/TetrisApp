@@ -21,6 +21,7 @@ data class Board(
             }
         }
 
-        return Board(newCells)
+//        return Board(newCells)
+        return this.copy(_cells = newCells)
     }
 }

@@ -41,9 +41,15 @@ fun GameScreen(gameViewModel: GameViewModel) {
     val minoWith = 4
     val toCenter = (boardWidth / 2) - (minoWith / 2)
 
-    val minoPosition: MutableState<Pair<Int, Int>> = remember { mutableStateOf(Pair(toCenter, 0)) } // TODO: viewModelで実装したい
-    val mino = TetriMino(type = MinoType.O)
-    val shape = mino.type.shapes[mino.rotation]
+    val minoPosition: MutableState<Pair<Int, Int>> =
+        remember { mutableStateOf(Pair(toCenter, 0)) } // TODO: viewModelで実装したい
+    val mino by gameViewModel.tetriMino.observeAsState(
+        TetriMino(
+            _position = Pair(toCenter, 0),
+            _type = MinoType.O,
+            _rotation = 0
+        )
+    )
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     LaunchedEffect(Unit) {
@@ -52,19 +58,24 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
             // TODO: これをviewModelに変えておく
             // 壁への当たり判定
-            val nextMinoPosition = Pair(minoPosition.value.first, minoPosition.value.second + 1)
 
             // TODO: ミノの相対配置それぞれについて、nextMinoPositionにすでにミノ・壁があればミノ設置
 
             val checkCollisionYUseCase = CheckCollisionYUseCase()
-            val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino, position = minoPosition.value)
+            val willCollideY: Boolean =
+                checkCollisionYUseCase(board = board, mino = mino, position = minoPosition.value)
 
             // 衝突するならそこにミノを設置
             if (willCollideY) {
                 val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
                 onCollisionYUseCase(mino = mino, position = minoPosition)
             } else {
-                minoPosition.value = nextMinoPosition
+//                val nextMinoPosition = Pair(mino.position.first, mino.position.second + 1)
+                val newMino = mino.copy(
+                    _position = Pair(mino.position.first, mino.position.second + 1)
+                )
+                gameViewModel.updateTetriMino(newMino)
+//                mino.position = nextMinoPosition
             }
 
 
@@ -105,8 +116,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     modifier = Modifier
                         // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
                         .offset(
-                            x = ((minoPosition.value.first + relativePosition.first) * 20).dp,
-                            y = ((minoPosition.value.second + relativePosition.second) * 20).dp
+                            x = ((mino.position.first + relativePosition.first) * 20).dp,
+                            y = ((mino.position.second + relativePosition.second) * 20).dp
                         )
                         .size(20.dp)
                         .background(mino.type.color)

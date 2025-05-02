@@ -18,14 +18,15 @@ class OnCollisionYUseCase(
             val newCell = Cell(
                 color = mino.type.color,
                 position = Pair(
-                    position.value.first + relativePosition.first,
-                    position.value.second + relativePosition.second
+                    mino.position.first + relativePosition.first,
+                    mino.position.second + relativePosition.second
                 ),
                 isFilled = true
             )
             gameViewModel.createBoardWithUpdateCells(newCell)
         }
         // 新しいミノの生成
-        position.value = Pair(TO_CENTER, 0)
+        val newMino = mino.copy(_position = Pair(TO_CENTER, 0))
+        gameViewModel.updateTetriMino(newMino)
     }
 }

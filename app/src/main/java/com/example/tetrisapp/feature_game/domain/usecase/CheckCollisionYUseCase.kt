@@ -12,18 +12,16 @@ class CheckCollisionYUseCase {
     ): Boolean {
         val shape = mino.type.shapes[mino.rotation]
         val isCollideY = shape.any { relativePosition ->
-            val nextX = position.first + relativePosition.first
-            val nextY = position.second + relativePosition.second + 1
+            val nextX = mino.position.first + relativePosition.first
+            val nextY = mino.position.second + relativePosition.second + 1
 
             // ミノの次の位置が壁があるまたはミノがあるならwillCollide=trueを返す
             // getOrNullにすることで範囲外の時例外が出るのを防ぐ。例えばnextY=21になると範囲外でクラッシュするのを防ぐ
 
-            println(board.cells.getOrNull(nextY)
-                ?.getOrNull(nextX)?.isFilled == true)
-
-            nextY >= Board().cells.size || board.cells.getOrNull(nextY)
+            nextY >= board.cells.size || board.cells.getOrNull(nextY)
                 ?.getOrNull(nextX)?.isFilled == true
         }
+        println(isCollideY)
         return isCollideY
     }
 }
