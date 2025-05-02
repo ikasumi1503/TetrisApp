@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.Cell
+import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 
 
 // なぜuiにviewModelを置いているのか？
@@ -20,6 +21,8 @@ class GameViewModel : ViewModel() {
     // privateにして直接変更及び取得ができないようにする
     // ViewModelはデータを入れる箱で、LiveDataはそのデータを反映させる液晶の役割
     private val _board = MutableLiveData(Board())
+    // TODO: ここに_tetriMino入れる
+
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
