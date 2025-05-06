@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,13 +48,20 @@ fun GameScreen(gameViewModel: GameViewModel) {
             _position = Pair(toCenter, 0), _type = MinoType.T, _rotation = 0
         )
     )
+    val ghostMino by gameViewModel.ghostMino.observeAsState(
+        TetriMino(
+            // ダミーデータ
+            _position = Pair(toCenter, 0), _type = MinoType.T, _rotation = 0
+        )
+    )
+    val isInitialized = remember { mutableStateOf(false) }
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
     LaunchedEffect(Unit) { // TODO: ViewModel内で使うようにする
         // 最初に生成するミノの選択
         gameViewModel.spawnTetriMino()
-        // TODO: テトリミノを表示する準備ができたというのを行いたい
+        isInitialized.value = true
 
         while (true) {
             delay(400)
@@ -101,21 +110,44 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 }
             }
 
+            // ゴーストの描画
+            if (isInitialized.value) {
+                println("描画")
+                for (relativePosition in ghostMino.type.shapes[ghostMino.rotation]) {
+                    Box(
+                        modifier = Modifier
+                            // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
+                            .offset(
+                                x = ((ghostMino.position.first + relativePosition.first) * 20).dp,
+                                y = ((ghostMino.position.second + relativePosition.second) * 20).dp
+                            )
+                            .size(20.dp)
+                            .background(Color.Gray.copy(alpha = 0.3f))
+                            .border(2.dp, Color.Gray)
+                    )
+                }
+            }
 
             // テトリミノの描画
-            for (relativePosition in mino.type.shapes[mino.rotation]) {
-                Box(
-                    modifier = Modifier
-                        // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
-                        .offset(
-                            x = ((mino.position.first + relativePosition.first) * 20).dp,
-                            y = ((mino.position.second + relativePosition.second) * 20).dp
-                        )
-                        .size(20.dp)
-                        .background(mino.type.color)
-                )
+            if (isInitialized.value) {
+                for (relativePosition in mino.type.shapes[mino.rotation]) {
+                    Box(
+                        modifier = Modifier
+                            // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
+                            .offset(
+                                x = ((mino.position.first + relativePosition.first) * 20).dp,
+                                y = ((mino.position.second + relativePosition.second) * 20).dp
+                            )
+                            .size(20.dp)
+                            .background(mino.type.color)
+                    )
+                }
             }
+
+
         }
+
+
 
         fun moveX(sideX: SideX) { // TODO: useCaseにしておく
             val sideToNumUseCase = SideXToNumUseCase()
@@ -136,19 +168,26 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     )
                 )
                 gameViewModel.updateTetriMino(newMino)
+                gameViewModel.updateGhostMino()
             }
         }
+
+
 
         // rotateDir...時計回り→+1、反時計回り→-1
         fun rotate(rotateDir: Int) {
             // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
-            val newRotation = (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
+            val newRotation =
+                (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
             val rotatedMino = mino.copy(_rotation = newRotation)
 
             // SRSルールというテトリミノの回転ルールを適用している
 
             val kickOffsets =
-                if (mino.type == MinoType.I) GameConstants.I_KickTable[Pair(mino.rotation, rotatedMino.rotation)]
+                if (mino.type == MinoType.I) GameConstants.I_KickTable[Pair(
+                    mino.rotation,
+                    rotatedMino.rotation
+                )]
                     ?: listOf(Pair(0, 0)) else GameConstants.JLSTZ_KickTable[Pair(
                     mino.rotation, rotatedMino.rotation
                 )] ?: listOf(Pair(0, 0))
@@ -188,6 +227,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     break
                 }
             }
+            gameViewModel.updateGhostMino()
         }
 
         Row {

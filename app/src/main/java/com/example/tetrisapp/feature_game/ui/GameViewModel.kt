@@ -9,6 +9,8 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
 
 
 // なぜuiにviewModelを置いているのか？
@@ -31,12 +33,14 @@ class GameViewModel(
     private val _board = MutableLiveData(Board())
     private val _tetriMinoList = MutableLiveData(TetriMinoList())
     private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T))
+    private val _ghostMino = MutableLiveData<TetriMino>()
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
     val board: LiveData<Board> = _board
     val tetriMinoList: LiveData<TetriMinoList> = _tetriMinoList
     val tetriMino: LiveData<TetriMino> = _tetriMino
+    val ghostMino: LiveData<TetriMino> = _ghostMino
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -57,6 +61,7 @@ class GameViewModel(
             _tetriMino.value = TetriMino(_type = nextMinoType)
             _tetriMinoList.value = nextMinoList
         }
+        updateGhostMino()
     }
 
     fun checkAndClearLines(){
@@ -65,4 +70,14 @@ class GameViewModel(
             checkAndClearLinesUseCase(board)
         }
     }
+
+    fun updateGhostMino(){
+        // ?: return ... もしもnullならreturn してね、という意味
+        val mino = _tetriMino.value ?: return
+        val board = _board.value ?: return
+        val computeGhostMinoUseCase = ComputeGhostMinoUseCase()
+        _ghostMino.value = computeGhostMinoUseCase(mino, board)
+    }
+
+
 }
