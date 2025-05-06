@@ -22,8 +22,8 @@ class GameViewModel : ViewModel() {
     // privateにして直接変更及び取得ができないようにする
     // ViewModelはデータを入れる箱で、LiveDataはそのデータを反映させる液晶の役割
     private val _board = MutableLiveData(Board())
-    // TODO: ここに_tetriMino入れる
     private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T)) // TODO: 初期値をどこかでランダムに代入したい
+
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型

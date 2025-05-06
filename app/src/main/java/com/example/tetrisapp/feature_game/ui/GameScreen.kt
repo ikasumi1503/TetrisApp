@@ -39,7 +39,6 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun GameScreen(gameViewModel: GameViewModel) {
-    // TODO: git管理しておく
     val board by gameViewModel.board.observeAsState(Board())
     val boardWidth = Board().cells[0].size
     val minoWith = 4
@@ -142,10 +141,10 @@ fun GameScreen(gameViewModel: GameViewModel) {
             }
         }
 
-        fun rotate() {
-            // TODO: もしもミノと壁とかの位置がかぶったらpositionずらす
-            val newRotation = (mino.rotation + 1) % mino.type.shapes.size
-
+        // rotateDir...時計回り→+1、反時計回り→-1
+        fun rotate(rotateDir: Int) {
+            // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
+            val newRotation = (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
             val rotatedMino = mino.copy(_rotation = newRotation)
 
             // SRSルールというテトリミノの回転ルールを適用している
@@ -161,9 +160,9 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 val newPosition = Pair(
                     mino.position.first + kickOffset.first, mino.position.second + kickOffset.second
                 )
-                // オフセットを適用したとき、回転後のミノで被っているものがないか確認
-                val kickedRotatedMino = rotatedMino.copy(_position = newPosition)
 
+                // オフセットを適用したとき、回転後のミノで壁やミノと被っているものがないか確認
+                val kickedRotatedMino = rotatedMino.copy(_position = newPosition)
                 val isCollided =
                     kickedRotatedMino.type.shapes[kickedRotatedMino.rotation].any { relativePosition ->
                         val kickedRotatedMinoPartsX =
@@ -174,6 +173,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                         // 画面外になっているかどうか
                         val isOutOfBounds =
                             kickedRotatedMinoPartsX < 0 || kickedRotatedMinoPartsX >= board.cells[0].size || kickedRotatedMinoPartsY < 0 || kickedRotatedMinoPartsY >= board.cells.size
+
                         // 他のミノと被っているかどうか
                         val isOverlapping =
                             board.cells.getOrNull(kickedRotatedMinoPartsY)?.getOrNull(
@@ -195,7 +195,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
         Row {
             Button(onClick = { moveX(sideX = SideX.LEFT) }) { Text("左") }
             Button(onClick = { moveX(sideX = SideX.RIGHT) }) { Text("右") }
-            Button(onClick = { rotate() }) { Text("右回転") } // TODO: 左右の回転にしておきたい
+            Button(onClick = { rotate(1) }) { Text("右回転") }
+            Button(onClick = { rotate(-1) }) { Text("左回転") }
         }
     }
 
