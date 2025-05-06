@@ -13,11 +13,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,11 +40,9 @@ fun GameScreen(gameViewModel: GameViewModel) {
     val boardWidth = Board().cells[0].size
     val minoWith = 4
     val toCenter = (boardWidth / 2) - (minoWith / 2)
-
-    val minoPosition: MutableState<Pair<Int, Int>> =
-        remember { mutableStateOf(Pair(toCenter, 0)) } // TODO: viewModelで実装したい
     val mino by gameViewModel.tetriMino.observeAsState(
         TetriMino(
+            // ダミーデータ
             _position = Pair(toCenter, 0), _type = MinoType.T, _rotation = 0
         )
     )
@@ -55,9 +50,10 @@ fun GameScreen(gameViewModel: GameViewModel) {
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
     LaunchedEffect(Unit) { // TODO: ViewModel内で使うようにする
+        // 最初に生成するミノの選択
+        gameViewModel.spawnTetriMino()
         while (true) {
             delay(400)
-            // TODO: これをviewModelに変えておく
             // 壁への当たり判定
             val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)

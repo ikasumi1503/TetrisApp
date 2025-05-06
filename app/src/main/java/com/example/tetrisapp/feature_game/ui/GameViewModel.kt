@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
+import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 
 
@@ -15,6 +16,8 @@ import com.example.tetrisapp.feature_game.domain.model.MinoType
 
 //　ViewModelの役割は？
 // uiが欲しい状態を整えてあげる中間役
+// TODO: 今はUI(View) → ViewModelまではいいんだけど、UseCase → Repository → データ層がごちゃごちゃになってるから、
+// TODO: UI(View) → ViewModel → UseCase → Repository → データ層 にしておく
 class GameViewModel : ViewModel() {
 
     // ここでuiで使うプロパティをどんどん入れていく
@@ -22,13 +25,16 @@ class GameViewModel : ViewModel() {
     // privateにして直接変更及び取得ができないようにする
     // ViewModelはデータを入れる箱で、LiveDataはそのデータを反映させる液晶の役割
     private val _board = MutableLiveData(Board())
-    private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T)) // TODO: 初期値をどこかでランダムに代入したい
+    private val _tetriMinoList = MutableLiveData(TetriMinoList())
+    private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T))
 
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
     val board: LiveData<Board> = _board
+    val tetriMinoList: LiveData<TetriMinoList> = _tetriMinoList
     val tetriMino: LiveData<TetriMino> = _tetriMino
+
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -40,5 +46,14 @@ class GameViewModel : ViewModel() {
 
     fun updateTetriMino(mino: TetriMino){
         _tetriMino.value = _tetriMino.value?.updateTetriMino(mino = mino)
+    }
+
+    fun spawnTetriMino(){
+        val result = _tetriMinoList.value?.spawnTetriMino()
+        if(result != null){
+            val (nextMinoType, nextMinoList) = result
+            _tetriMino.value = TetriMino(_type = nextMinoType)
+            _tetriMinoList.value = nextMinoList
+        }
     }
 }
