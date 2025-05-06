@@ -195,7 +195,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
         Row {
             Button(onClick = { moveX(sideX = SideX.LEFT) }) { Text("左") }
             Button(onClick = { moveX(sideX = SideX.RIGHT) }) { Text("右") }
-            Button(onClick = { rotate() }) { Text("右回転") }
+            Button(onClick = { rotate() }) { Text("右回転") } // TODO: 左右の回転にしておきたい
         }
     }
 
