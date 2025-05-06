@@ -59,7 +59,7 @@ enum class MinoType(
 }
 
 interface TetriMinoType{
-    val rotation: Int;
-    val type: MinoType;
-    val position: Pair<Int,Int>;
+    val rotation: Int
+    val type: MinoType
+    val position: Pair<Int,Int>
 }

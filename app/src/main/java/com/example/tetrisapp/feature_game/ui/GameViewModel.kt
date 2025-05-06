@@ -8,6 +8,7 @@ import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
+import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
 
 
 // なぜuiにviewModelを置いているのか？
@@ -18,7 +19,10 @@ import com.example.tetrisapp.feature_game.domain.model.MinoType
 // uiが欲しい状態を整えてあげる中間役
 // TODO: 今はUI(View) → ViewModelまではいいんだけど、UseCase → Repository → データ層がごちゃごちゃになってるから、
 // TODO: UI(View) → ViewModel → UseCase → Repository → データ層 にしておく
-class GameViewModel : ViewModel() {
+class GameViewModel(
+    // TODO: 直接渡すと
+    private val checkAndClearLinesUseCase: CheckAndClearLinesUseCase = CheckAndClearLinesUseCase()
+) : ViewModel() {
 
     // ここでuiで使うプロパティをどんどん入れていく
 
@@ -28,13 +32,11 @@ class GameViewModel : ViewModel() {
     private val _tetriMinoList = MutableLiveData(TetriMinoList())
     private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T))
 
-
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
     val board: LiveData<Board> = _board
     val tetriMinoList: LiveData<TetriMinoList> = _tetriMinoList
     val tetriMino: LiveData<TetriMino> = _tetriMino
-
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -54,6 +56,13 @@ class GameViewModel : ViewModel() {
             val (nextMinoType, nextMinoList) = result
             _tetriMino.value = TetriMino(_type = nextMinoType)
             _tetriMinoList.value = nextMinoList
+        }
+    }
+
+    fun checkAndClearLines(){
+        // _boardの中身はLiveDataでnullになる可能性があるのでletを使ってnullになるかもしれませんよ、と書かないといけない
+        _board.value = _board.value?.let { board ->
+            checkAndClearLinesUseCase(board)
         }
     }
 }

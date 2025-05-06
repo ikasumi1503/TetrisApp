@@ -23,8 +23,10 @@ class OnCollisionYUseCase( // TODO: ぶつかった時に一マス移動させ�
             gameViewModel.createBoardWithUpdateCells(newCell)
         }
 
+        // ライン削除
+        gameViewModel.checkAndClearLines()
+
         // 新しいミノの生成
-//        val newMino = mino.copy(_position = Pair(TO_CENTER, 0))
         gameViewModel.spawnTetriMino()
         val newMino = gameViewModel.tetriMino.value
         if (newMino != null) {

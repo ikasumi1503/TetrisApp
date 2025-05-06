@@ -10,9 +10,8 @@ data class Board(
         get() = _cells
 
     fun createBoardWithUpdateCells(newCell: CellType): Board {
-        val newCells = _cells.mapIndexed{ row , cellRow ->
-            cellRow.mapIndexed {
-                col, cell ->
+        val newCells = _cells.mapIndexed { row, cellRow ->
+            cellRow.mapIndexed { col, cell ->
                 if (row == newCell.position.second && col == newCell.position.first) {
                     newCell
                 } else {
@@ -22,5 +21,20 @@ data class Board(
         }
 
         return this.copy(_cells = newCells)
+    }
+
+    fun checkAndClearLines(): Board {
+
+        // ボードの中身を一つ一つチェックして一行がisFilledになっているか確認
+        val remainingRows = _cells.filter { row ->
+            // any...一つでも当てはまるものがあればtrueを返す
+            row.any { cell -> !cell.isFilled }
+        }
+
+        // 削除された行数分追加
+        val clearedLinesCount = _cells.size - remainingRows.size
+        val newEmptyColumns = List(clearedLinesCount) { List(_cells[0].size) { Cell() } }
+        val updatedCells = newEmptyColumns + remainingRows
+        return this.copy(_cells = updatedCells)
     }
 }

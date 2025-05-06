@@ -52,6 +52,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
     LaunchedEffect(Unit) { // TODO: ViewModel内で使うようにする
         // 最初に生成するミノの選択
         gameViewModel.spawnTetriMino()
+        // TODO: テトリミノを表示する準備ができたというのを行いたい
+
         while (true) {
             delay(400)
             // 壁への当たり判定
