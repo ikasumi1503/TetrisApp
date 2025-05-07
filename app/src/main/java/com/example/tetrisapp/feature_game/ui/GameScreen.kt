@@ -71,7 +71,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
         while (true) {
             val currentTime = System.currentTimeMillis()
-            if (timeDelay.longValue >= 500L
+            if (timeDelay.longValue >= 1000L
             ) {
 
                 // 壁への当たり判定
@@ -309,12 +309,43 @@ fun GameScreen(gameViewModel: GameViewModel) {
             gameViewModel.updateGhostMino()
         }
 
+        fun softDrop(){
+            // 壁への当たり判定
+            val checkCollisionYUseCase = CheckCollisionYUseCase()
+            val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
+
+            if (willCollideY) {
+                // 衝突するならそこにミノを設置して新しいミノを作成
+                val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
+                onCollisionYUseCase(mino = mino)
+            } else {
+                // 衝突してないならミノを一つ下に落とす
+                val newMino = mino.copy(
+                    _position = Pair(mino.position.first, mino.position.second + 1)
+                )
+                gameViewModel.updateTetriMino(newMino)
+            }
+
+            timeDelay.longValue = 0
+        }
+
+        fun hardDrop(){
+            val newMino = mino.copy(
+                _position = ghostMino.position
+            )
+            gameViewModel.updateTetriMino(newMino)
+            OnCollisionYUseCase(gameViewModel = gameViewModel)
+            timeDelay.longValue = 1000
+        }
+
         Row {
             Button(onClick = { moveX(sideX = SideX.LEFT) }) { Text("左") }
             Button(onClick = { moveX(sideX = SideX.RIGHT) }) { Text("右") }
             Button(onClick = { rotate(1) }) { Text("右回転") }
             Button(onClick = { rotate(-1) }) { Text("左回転") }
         }
+        Button(onClick = { softDrop() }) { Text("下移動") }
+        Button(onClick = { hardDrop() }) { Text("ハードドロップ") }
     }
 
 }
