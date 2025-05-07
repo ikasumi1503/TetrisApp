@@ -1,5 +1,6 @@
 package com.example.tetrisapp.feature_game.ui
 
+import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -38,6 +39,9 @@ class GameViewModel(
     private val _score = MutableLiveData<Int>(0)
     private val _comboCount = MutableLiveData(0)
     private val _lastActionWasRotation = MutableLiveData(false)
+    private val _screenState = MutableLiveData(ScreenState.Game)
+    // mutableStateOfでもいいかも
+    private val _highScore = MutableLiveData(0)
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
@@ -48,7 +52,9 @@ class GameViewModel(
     val isSwapped: LiveData<Boolean> = _isSwapped
     val score: LiveData<Int> = _score
     val comboCount: LiveData<Int> = _comboCount
-    val lastActionWasRotation = _lastActionWasRotation
+    val lastActionWasRotation: LiveData<Boolean> = _lastActionWasRotation
+    val screenState: LiveData<ScreenState> = _screenState
+    val highScore : LiveData<Int> = _highScore
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -134,8 +140,33 @@ class GameViewModel(
     }
 
     fun markRotation(mark: Boolean) {
-        lastActionWasRotation.value = mark
+        _lastActionWasRotation.value = mark
     }
 
+    fun startGame() {
+        _score.value = 0
+        _screenState.value = ScreenState.Game
+    }
 
+    fun endGame() {
+        val score = _score.value
+        val highScore = _highScore.value
+        if(score != null && highScore != null){
+            if (score > highScore) {
+                _highScore.value = score
+//                saveHighScore(highScore)
+            }
+        }
+        _screenState.value = ScreenState.GameOver
+    }
+
+//    private fun loadHighScore(): Int {
+//        val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
+//        return prefs.getInt("high_score", 0)
+//    }
+//
+//    private fun saveHighScore(score: Int) {
+//        val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
+//        prefs.edit().putInt("high_score", score).apply()
+//    }
 }
