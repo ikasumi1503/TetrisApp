@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -55,6 +57,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
         )
     )
     val isInitialized = remember { mutableStateOf(false) }
+    val prolongedTime = null
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
@@ -64,7 +67,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
         isInitialized.value = true
 
         while (true) {
-            delay(400)
+            delay(500)
             // 壁への当たり判定
             val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
@@ -93,58 +96,99 @@ fun GameScreen(gameViewModel: GameViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
 
-        Box(modifier = Modifier) {
-            // セルが横10列が縦に20個並んでいるものを描画している
-            Column {
-                for (cellRow in board.cells) {
-                    Row {
-                        for (cell in cellRow) {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .border(1.dp, Color.Gray)
-                                    .background(cell.color)
-                            )
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.border(1.dp, Color.Gray)) {
+
+                // セルが横10列が縦に20個並んでいるものを描画している
+                Column {
+                    for (cellRow in board.cells) {
+                        Row {
+                            for (cell in cellRow) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .background(cell.color)
+                                )
+                            }
                         }
                     }
                 }
+
+                // ゴーストの描画
+                if (isInitialized.value) {
+                    println("描画")
+                    for (relativePosition in ghostMino.type.shapes[ghostMino.rotation]) {
+                        Box(
+                            modifier = Modifier
+                                // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
+                                .offset(
+                                    x = ((ghostMino.position.first + relativePosition.first) * 20).dp,
+                                    y = ((ghostMino.position.second + relativePosition.second) * 20).dp
+                                )
+                                .size(20.dp)
+                                .background(Color.Gray.copy(alpha = 0.3f))
+                                .border(1.dp, Color.Gray)
+                        )
+                    }
+                }
+
+                // テトリミノの描画
+                if (isInitialized.value) {
+                    for (relativePosition in mino.type.shapes[mino.rotation]) {
+                        Box(
+                            modifier = Modifier
+                                // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
+                                .offset(
+                                    x = ((mino.position.first + relativePosition.first) * 20).dp,
+                                    y = ((mino.position.second + relativePosition.second) * 20).dp
+                                )
+                                .size(20.dp)
+                                .background(mino.type.color)
+                        )
+                    }
+                }
+
             }
 
-            // ゴーストの描画
-            if (isInitialized.value) {
-                println("描画")
-                for (relativePosition in ghostMino.type.shapes[ghostMino.rotation]) {
-                    Box(
-                        modifier = Modifier
-                            // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
-                            .offset(
-                                x = ((ghostMino.position.first + relativePosition.first) * 20).dp,
-                                y = ((ghostMino.position.second + relativePosition.second) * 20).dp
-                            )
-                            .size(20.dp)
-                            .background(Color.Gray.copy(alpha = 0.3f))
-                            .border(2.dp, Color.Gray)
-                    )
+
+
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .border(1.dp, Color.Gray)
+            ) {
+                Text(
+                    text = "NEXT",
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
+
+                val nextMino = gameViewModel.tetriMinoList.value?.tetriMinoList?.get(0)
+                if (isInitialized.value && nextMino != null) {
+                    val shape = nextMino.shapes[0]
+                    val cellSize = 20
+                    val boxCenter = 50  // 100 / 2
+
+                    // 最大値と最小値の中心「位置」を求めるので、半マス分ずらす必要あるので、+1する
+                    val centerX = (shape.minOf { it.first } + shape.maxOf { it.first } + 1) / 2f
+                    val centerY = (shape.minOf { it.second } + shape.maxOf { it.second } + 1) / 2f
+
+                    for ((x, y) in shape) {
+                        val offsetX = ((x - centerX) * cellSize + boxCenter).dp
+                        val offsetY = ((y - centerY) * cellSize + boxCenter + 10).dp // 10dpだけNEXTの下にずらす
+
+                        Box(
+                            modifier = Modifier
+                                .offset(x = offsetX, y = offsetY)
+                                .size(cellSize.dp)
+                                .background(nextMino.color)
+                                .border(1.dp, Color.Black)
+                        )
+                    }
                 }
             }
-
-            // テトリミノの描画
-            if (isInitialized.value) {
-                for (relativePosition in mino.type.shapes[mino.rotation]) {
-                    Box(
-                        modifier = Modifier
-                            // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
-                            .offset(
-                                x = ((mino.position.first + relativePosition.first) * 20).dp,
-                                y = ((mino.position.second + relativePosition.second) * 20).dp
-                            )
-                            .size(20.dp)
-                            .background(mino.type.color)
-                    )
-                }
-            }
-
-
         }
 
 
@@ -171,7 +215,6 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 gameViewModel.updateGhostMino()
             }
         }
-
 
 
         // rotateDir...時計回り→+1、反時計回り→-1
