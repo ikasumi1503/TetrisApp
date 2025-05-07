@@ -32,5 +32,9 @@ class OnCollisionYUseCase( // TODO: ぶつかった時に一マス移動させ�
         if (newMino != null) {
             gameViewModel.updateTetriMino(newMino)
         }
+
+        // ミノについての初期化
+        gameViewModel.markRotation(false)
+        gameViewModel.updateIsSwapped(false)
     }
 }

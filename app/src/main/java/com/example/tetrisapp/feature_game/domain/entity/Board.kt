@@ -23,7 +23,7 @@ data class Board(
         return this.copy(_cells = newCells)
     }
 
-    fun checkAndClearLines(): Board {
+    fun checkAndClearLines(): Pair<Board, Int> {
 
         // ボードの中身を一つ一つチェックして一行がisFilledになっているか確認
         val remainingRows = _cells.filter { row ->
@@ -35,6 +35,6 @@ data class Board(
         val clearedLinesCount = _cells.size - remainingRows.size
         val newEmptyColumns = List(clearedLinesCount) { List(_cells[0].size) { Cell() } }
         val updatedCells = newEmptyColumns + remainingRows
-        return this.copy(_cells = updatedCells)
+        return Pair(this.copy(_cells = updatedCells), clearedLinesCount)
     }
 }

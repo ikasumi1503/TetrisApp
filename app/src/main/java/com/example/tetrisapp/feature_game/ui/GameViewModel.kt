@@ -9,7 +9,7 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
 
 
@@ -34,6 +34,10 @@ class GameViewModel(
     private val _tetriMinoList = MutableLiveData(TetriMinoList())
     private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T))
     private val _ghostMino = MutableLiveData<TetriMino>()
+    private val _isSwapped = MutableLiveData<Boolean>(false)
+    private val _score = MutableLiveData<Int>(0)
+    private val _comboCount = MutableLiveData(0)
+    private val _lastActionWasRotation = MutableLiveData(false)
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
@@ -41,6 +45,10 @@ class GameViewModel(
     val tetriMinoList: LiveData<TetriMinoList> = _tetriMinoList
     val tetriMino: LiveData<TetriMino> = _tetriMino
     val ghostMino: LiveData<TetriMino> = _ghostMino
+    val isSwapped: LiveData<Boolean> = _isSwapped
+    val score: LiveData<Int> = _score
+    val comboCount: LiveData<Int> = _comboCount
+    val lastActionWasRotation = _lastActionWasRotation
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -52,6 +60,22 @@ class GameViewModel(
 
     fun updateTetriMino(mino: TetriMino){
         _tetriMino.value = _tetriMino.value?.updateTetriMino(mino = mino)
+    }
+
+    fun swapHoldAndNext() {
+        if(isSwapped.value == true) return
+        val currentMino = requireNotNull(_tetriMino.value) { "Current tetri mino is null!" }
+        val minoType = _tetriMinoList.value?.tetriMinoList?.getOrNull(0)
+            ?: throw IllegalStateException("Mino list is empty!")
+
+        _tetriMinoList.value = _tetriMinoList.value?.swapHoldAndNext(mino = currentMino)
+        _tetriMino.value = TetriMino(_type = minoType)
+        updateIsSwapped(true)
+        updateGhostMino()
+    }
+
+    fun updateIsSwapped(updatedIsSwapped: Boolean){
+        _isSwapped.value = updatedIsSwapped
     }
 
     fun spawnTetriMino(){
@@ -66,9 +90,14 @@ class GameViewModel(
 
     fun checkAndClearLines(){
         // _boardの中身はLiveDataでnullになる可能性があるのでletを使ってnullになるかもしれませんよ、と書かないといけない
-        _board.value = _board.value?.let { board ->
-            checkAndClearLinesUseCase(board)
-        }
+        val board = _board.value ?: return
+        val mino = _tetriMino.value ?: return
+        val (newBoard, linesCount) = checkAndClearLinesUseCase(board)
+        _board.value = newBoard
+        val checkIsTSpinUseCase = CheckIsTSpinUseCase()
+        val isTSpinPerformed = checkIsTSpinUseCase(mino = mino, board = board)
+        println(isTSpinPerformed)
+        calculateScore(linesCleared = linesCount, isTSpinPerformed = isTSpinPerformed)
     }
 
     fun updateGhostMino(){
@@ -77,6 +106,35 @@ class GameViewModel(
         val board = _board.value ?: return
         val computeGhostMinoUseCase = ComputeGhostMinoUseCase()
         _ghostMino.value = computeGhostMinoUseCase(mino, board)
+    }
+
+    fun calculateScore(linesCleared: Int, isTSpinPerformed: Boolean): Int {
+        if (linesCleared <= 0) {
+            _comboCount.value = 0
+            return _score.value ?: 0 // 変更なしの場合は現在のスコアを返す
+        }
+
+        val scoreIncrement = when {
+            isTSpinPerformed && linesCleared == 1 -> 500
+            isTSpinPerformed && linesCleared == 2 -> 800
+            isTSpinPerformed && linesCleared == 3 -> 1200
+
+            linesCleared == 1 -> 100
+            linesCleared == 2 -> 300
+            linesCleared == 3 -> 500
+            linesCleared == 4 -> 800
+            else -> 0
+        }
+
+        val updatedScore = (_score.value ?: 0) + scoreIncrement + (_comboCount.value ?: 0) * 50
+        _score.value = updatedScore
+        _comboCount.value = (_comboCount.value ?: 0) + 1
+
+        return updatedScore
+    }
+
+    fun markRotation(mark: Boolean) {
+        lastActionWasRotation.value = mark
     }
 
 

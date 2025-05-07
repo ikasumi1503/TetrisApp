@@ -1,7 +1,9 @@
 package com.example.tetrisapp.feature_game.ui
 
+import android.util.MutableBoolean
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,6 +65,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
     val timeDelay: MutableLongState = remember { mutableLongStateOf(0) }
     val prolongTimeDelayCountLimit = remember { mutableIntStateOf(0) }
 
+
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
     LaunchedEffect(Unit) { // TODO: ViewModel内で使うようにする
@@ -88,6 +92,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                         _position = Pair(mino.position.first, mino.position.second + 1)
                     )
                     gameViewModel.updateTetriMino(newMino)
+                    gameViewModel.markRotation(false)
                 }
 
                 // TimeDelayを0にする
@@ -135,7 +140,6 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
                 // ゴーストの描画
                 if (isInitialized.value) {
-                    println("描画")
                     for (relativePosition in ghostMino.type.shapes[ghostMino.rotation]) {
                         Box(
                             modifier = Modifier
@@ -169,12 +173,14 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
             }
 
-
-
+            // Nextの表示
             Box(
                 modifier = Modifier
                     .size(100.dp)
                     .border(1.dp, Color.Gray)
+                    .clickable {
+
+                    }
             ) {
                 Text(
                     text = "NEXT", modifier = Modifier.align(Alignment.TopCenter)
@@ -203,11 +209,10 @@ fun GameScreen(gameViewModel: GameViewModel) {
                                 .border(1.dp, Color.Black)
                         )
                     }
+                    Text(gameViewModel.score.value.toString())
                 }
             }
         }
-
-
 
         fun moveX(sideX: SideX) { // TODO: useCaseにしておく
             val sideToNumUseCase = SideXToNumUseCase()
@@ -229,8 +234,10 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 )
                 gameViewModel.updateTetriMino(newMino)
                 gameViewModel.updateGhostMino()
+                gameViewModel.markRotation(false)
 
                 // TODO: ここuseCaseでまとめた方がいいかも
+                // 接地時点で操作したら落下しない処理
                 val checkCollisionYUseCase = CheckCollisionYUseCase()
                 val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
                 if (willCollideY && prolongTimeDelayCountLimit.intValue <= 10) {
@@ -244,6 +251,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
             }
 
         }
+
+
 
 
         // rotateDir...時計回り→+1、反時計回り→-1
@@ -297,6 +306,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 }
                 // 回転後のミノで被っていなければ確定
             }
+
+            // 接地時点で回転したら落下しない処理
             val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
             if(willCollideY && prolongTimeDelayCountLimit.intValue <= 10){
@@ -307,6 +318,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 OnCollisionYUseCase(gameViewModel = gameViewModel)
             }
             gameViewModel.updateGhostMino()
+            gameViewModel.markRotation(true)
         }
 
         fun softDrop(){
@@ -324,6 +336,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     _position = Pair(mino.position.first, mino.position.second + 1)
                 )
                 gameViewModel.updateTetriMino(newMino)
+                gameViewModel.markRotation(false)
             }
 
             timeDelay.longValue = 0
@@ -335,7 +348,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
             )
             gameViewModel.updateTetriMino(newMino)
             OnCollisionYUseCase(gameViewModel = gameViewModel)
-            timeDelay.longValue = 1000
+            gameViewModel.updateGhostMino()
+            timeDelay.longValue = 1000L
         }
 
         Row {
@@ -346,6 +360,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
         }
         Button(onClick = { softDrop() }) { Text("下移動") }
         Button(onClick = { hardDrop() }) { Text("ハードドロップ") }
+        Button(onClick = { gameViewModel.swapHoldAndNext() }) { Text("Swap") }
     }
 
 }

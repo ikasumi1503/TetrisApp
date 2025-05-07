@@ -29,6 +29,12 @@ data class TetriMinoList(
         return nextMino to nextList
     }
 
+    fun swapHoldAndNext(mino: TetriMino): TetriMinoList {
+        val updatedList = listOf(mino.type) + _tetriMinoList.drop(1) // 先頭だけ入れ替え
+        return this.copy(_tetriMinoList = updatedList) // 新しいオブジェクトを作成
+    }
+
+
     // TODO: ミノのリストを生成する処理
 
 }
