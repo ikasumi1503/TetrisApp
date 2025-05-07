@@ -6,17 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -57,7 +58,9 @@ fun GameScreen(gameViewModel: GameViewModel) {
         )
     )
     val isInitialized = remember { mutableStateOf(false) }
-    val prolongedTime = null
+    val lastTime: MutableLongState = remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val timeDelay: MutableLongState = remember { mutableLongStateOf(0) }
+    val prolongTimeDelayCountLimit = remember { mutableIntStateOf(0) }
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
@@ -67,22 +70,35 @@ fun GameScreen(gameViewModel: GameViewModel) {
         isInitialized.value = true
 
         while (true) {
-            delay(500)
-            // 壁への当たり判定
-            val checkCollisionYUseCase = CheckCollisionYUseCase()
-            val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
+            val currentTime = System.currentTimeMillis()
+            if (timeDelay.longValue >= 500L
+            ) {
 
-            if (willCollideY) {
-                // 衝突するならそこにミノを設置して新しいミノを作成
-                val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
-                onCollisionYUseCase(mino = mino)
-            } else {
-                // 衝突してないならミノを一つ下に落とす
-                val newMino = mino.copy(
-                    _position = Pair(mino.position.first, mino.position.second + 1)
-                )
-                gameViewModel.updateTetriMino(newMino)
+                // 壁への当たり判定
+                val checkCollisionYUseCase = CheckCollisionYUseCase()
+                val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
+
+                if (willCollideY) {
+                    // 衝突するならそこにミノを設置して新しいミノを作成
+                    val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
+                    onCollisionYUseCase(mino = mino)
+                } else {
+                    // 衝突してないならミノを一つ下に落とす
+                    val newMino = mino.copy(
+                        _position = Pair(mino.position.first, mino.position.second + 1)
+                    )
+                    gameViewModel.updateTetriMino(newMino)
+                }
+
+                // TimeDelayを0にする
+                timeDelay.longValue = 0
             }
+
+            // TimeDelayにcurrentTime-lastTimeを足す
+            timeDelay.value += currentTime - lastTime.longValue
+            lastTime.longValue = currentTime
+
+            delay(16L) // 60fpsくらい
             // TODO: もしもミノの出現位置に既にミノがあればゲームオーバーにする
         }
     }
@@ -161,8 +177,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     .border(1.dp, Color.Gray)
             ) {
                 Text(
-                    text = "NEXT",
-                    modifier = Modifier.align(Alignment.TopCenter)
+                    text = "NEXT", modifier = Modifier.align(Alignment.TopCenter)
                 )
 
                 val nextMino = gameViewModel.tetriMinoList.value?.tetriMinoList?.get(0)
@@ -177,7 +192,8 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
                     for ((x, y) in shape) {
                         val offsetX = ((x - centerX) * cellSize + boxCenter).dp
-                        val offsetY = ((y - centerY) * cellSize + boxCenter + 10).dp // 10dpだけNEXTの下にずらす
+                        val offsetY =
+                            ((y - centerY) * cellSize + boxCenter + 10).dp // 10dpだけNEXTの下にずらす
 
                         Box(
                             modifier = Modifier
@@ -213,7 +229,20 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 )
                 gameViewModel.updateTetriMino(newMino)
                 gameViewModel.updateGhostMino()
+
+                // TODO: ここuseCaseでまとめた方がいいかも
+                val checkCollisionYUseCase = CheckCollisionYUseCase()
+                val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
+                if (willCollideY && prolongTimeDelayCountLimit.intValue <= 10) {
+                    timeDelay.longValue = 0
+                    prolongTimeDelayCountLimit.intValue++
+                } else if (prolongTimeDelayCountLimit.intValue > 10) {
+                    prolongTimeDelayCountLimit.intValue = 0
+                    OnCollisionYUseCase(gameViewModel = gameViewModel)
+                }
+
             }
+
         }
 
 
@@ -226,14 +255,11 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
             // SRSルールというテトリミノの回転ルールを適用している
 
-            val kickOffsets =
-                if (mino.type == MinoType.I) GameConstants.I_KickTable[Pair(
-                    mino.rotation,
-                    rotatedMino.rotation
-                )]
-                    ?: listOf(Pair(0, 0)) else GameConstants.JLSTZ_KickTable[Pair(
-                    mino.rotation, rotatedMino.rotation
-                )] ?: listOf(Pair(0, 0))
+            val kickOffsets = if (mino.type == MinoType.I) GameConstants.I_KickTable[Pair(
+                mino.rotation, rotatedMino.rotation
+            )] ?: listOf(Pair(0, 0)) else GameConstants.JLSTZ_KickTable[Pair(
+                mino.rotation, rotatedMino.rotation
+            )] ?: listOf(Pair(0, 0))
 
             // それぞれのオフセットを適用
             for (kickOffset in kickOffsets) {
@@ -263,12 +289,22 @@ fun GameScreen(gameViewModel: GameViewModel) {
                         isOutOfBounds || isOverlapping
                     }
 
-                // 回転後のミノで被っていなければ確定
                 if (!isCollided) {
-                    println(kickedRotatedMino.position)
                     gameViewModel.updateTetriMino(kickedRotatedMino)
+
+                    // TODO: ここuseCaseにまとめる
                     break
                 }
+                // 回転後のミノで被っていなければ確定
+            }
+            val checkCollisionYUseCase = CheckCollisionYUseCase()
+            val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
+            if(willCollideY && prolongTimeDelayCountLimit.intValue <= 10){
+                timeDelay.longValue = 0
+                prolongTimeDelayCountLimit.intValue ++
+            }else if(prolongTimeDelayCountLimit.intValue > 10){
+                prolongTimeDelayCountLimit.intValue = 0
+                OnCollisionYUseCase(gameViewModel = gameViewModel)
             }
             gameViewModel.updateGhostMino()
         }
