@@ -18,7 +18,6 @@ fun MainScreen(gameViewModel: GameViewModel){
             ScreenState.Game -> GameScreen(gameViewModel = gameViewModel)
             ScreenState.GameOver -> GameScreen(gameViewModel = gameViewModel)
             ScreenState.Menu -> GameScreen(gameViewModel = gameViewModel)
-
         }
     }
 }
