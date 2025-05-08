@@ -21,9 +21,10 @@ data class TetriMinoList(
         val updatedList = _tetriMinoList.drop(1)
         // もしもミノが無くなったら次のミノを追加する
         val nextList = if(updatedList.isEmpty()){
-            TetriMinoList(_tetriMinoList = _nextTetriMinoList)
+            TetriMinoList(_tetriMinoList = _nextTetriMinoList, _nextTetriMinoList = MinoType.entries.shuffled())
         }else{
-            TetriMinoList(_tetriMinoList = updatedList)
+            TetriMinoList(_tetriMinoList = updatedList,
+                _nextTetriMinoList = _nextTetriMinoList)
         }
 
         return nextMino to nextList

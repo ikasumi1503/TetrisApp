@@ -116,7 +116,6 @@ fun GameScreen(gameViewModel: GameViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -263,12 +262,16 @@ fun GameScreen(gameViewModel: GameViewModel) {
             val rotatedMino = mino.copy(_rotation = newRotation)
 
             // SRSルールというテトリミノの回転ルールを適用している
+            // https://tetrisch.github.io/main/srs.html
 
-            val kickOffsets = if (mino.type == MinoType.I) GameConstants.I_KickTable[Pair(
-                mino.rotation, rotatedMino.rotation
-            )] ?: listOf(Pair(0, 0)) else GameConstants.JLSTZ_KickTable[Pair(
-                mino.rotation, rotatedMino.rotation
-            )] ?: listOf(Pair(0, 0))
+            val key = Pair(mino.rotation, rotatedMino.rotation)
+
+            val kickOffsets = if (mino.type == MinoType.I)
+                GameConstants.I_KickTable[key] ?: error("Missing kick data for I: $key")
+            else
+                GameConstants.JLSTZ_KickTable[key] ?: error("Missing kick data for JLSTZ: $key")
+
+
 
             // それぞれのオフセットを適用
             for (kickOffset in kickOffsets) {
@@ -295,30 +298,31 @@ fun GameScreen(gameViewModel: GameViewModel) {
                                 kickedRotatedMinoPartsX
                             )?.isFilled == true
 
+
+
                         isOutOfBounds || isOverlapping
                     }
 
+                // 回転後のミノで被っていなければ確定
                 if (!isCollided) {
-                    gameViewModel.updateTetriMino(kickedRotatedMino)
 
-                    // TODO: ここuseCaseにまとめる
+                    // 接地時点で回転したら落下しない処理
+                    val checkCollisionYUseCase = CheckCollisionYUseCase()
+                    val willCollideY = checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
+                    if(willCollideY && prolongTimeDelayCountLimit.intValue <= 10){
+                        timeDelay.longValue = 0
+                        prolongTimeDelayCountLimit.intValue ++
+                    }else if(prolongTimeDelayCountLimit.intValue > 10){
+                        prolongTimeDelayCountLimit.intValue = 0
+                        OnCollisionYUseCase(gameViewModel = gameViewModel)
+                    }
+                    gameViewModel.updateTetriMino(kickedRotatedMino)
+                    gameViewModel.updateGhostMino()
+                    gameViewModel.markRotation(true)
                     break
                 }
-                // 回転後のミノで被っていなければ確定
             }
 
-            // 接地時点で回転したら落下しない処理
-            val checkCollisionYUseCase = CheckCollisionYUseCase()
-            val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
-            if(willCollideY && prolongTimeDelayCountLimit.intValue <= 10){
-                timeDelay.longValue = 0
-                prolongTimeDelayCountLimit.intValue ++
-            }else if(prolongTimeDelayCountLimit.intValue > 10){
-                prolongTimeDelayCountLimit.intValue = 0
-                OnCollisionYUseCase(gameViewModel = gameViewModel)
-            }
-            gameViewModel.updateGhostMino()
-            gameViewModel.markRotation(true)
         }
 
         fun softDrop(){
@@ -349,6 +353,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
             gameViewModel.updateTetriMino(newMino)
             OnCollisionYUseCase(gameViewModel = gameViewModel)
             gameViewModel.updateGhostMino()
+            println(gameViewModel.screenState.value)
             timeDelay.longValue = 1000L
         }
 

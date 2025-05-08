@@ -37,18 +37,18 @@ enum class MinoType(
     S(
         Color.Green, listOf(
             listOf(Pair(1, 1), Pair(2, 1), Pair(0, 2), Pair(1, 2)), // 0°
-            listOf(Pair(1, 0), Pair(1, 1), Pair(2, 1), Pair(2, 2)), // 90°
+            listOf(Pair(1, 1), Pair(1, 2), Pair(2, 2), Pair(2, 3)), // 90°
             listOf(Pair(1, 2), Pair(2, 2), Pair(0, 3), Pair(1, 3)), // 180°
-            listOf(Pair(0, 0), Pair(0, 1), Pair(1, 1), Pair(1, 2))  // 270°
+            listOf(Pair(0, 1), Pair(0, 2), Pair(1, 2), Pair(1, 3))  // 270°
         )
     ),
 
     Z(
         Color.Red, listOf(
             listOf(Pair(0, 1), Pair(1, 1), Pair(1, 2), Pair(2, 2)), // 0°
-            listOf(Pair(2, 0), Pair(2, 1), Pair(1, 1), Pair(1, 2)),  // 90°
+            listOf(Pair(2, 1), Pair(2, 2), Pair(1, 2), Pair(1, 3)),  // 90°
             listOf(Pair(0, 2), Pair(1, 2), Pair(1, 3), Pair(2, 3)), // 180°
-            listOf(Pair(1, 0), Pair(1, 1), Pair(0, 1), Pair(0, 2)) // 270°
+            listOf(Pair(1, 1), Pair(1, 2), Pair(0, 2), Pair(0, 3)) // 270°
         )
     ),
 

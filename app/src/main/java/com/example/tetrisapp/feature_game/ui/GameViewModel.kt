@@ -11,6 +11,7 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
 
@@ -91,6 +92,7 @@ class GameViewModel(
     }
 
     fun spawnTetriMino(){
+        // テトリミノの一巡と次の操作するミノを呼び出して適用する
         val result = _tetriMinoList.value?.spawnTetriMino()
         if(result != null){
             val (nextMinoType, nextMinoList) = result
@@ -98,6 +100,20 @@ class GameViewModel(
             _tetriMinoList.value = nextMinoList
         }
         updateGhostMino()
+
+        // ミノの生成時にミノがその位置にあればゲームオーバー
+        val checkCollisionYUseCase = CheckCollisionYUseCase()
+        val board = _board.value
+        val mino = _tetriMino.value
+        if(board != null && mino != null){
+            val isCollide = checkCollisionYUseCase(
+                board = board,
+                mino = mino.copy(_position = Pair(mino.position.first, mino.position.second - 1))
+            )
+            if(isCollide){
+                endGame()
+            }
+        }
     }
 
     fun checkAndClearLines(){
@@ -108,7 +124,6 @@ class GameViewModel(
         _board.value = newBoard
         val checkIsTSpinUseCase = CheckIsTSpinUseCase()
         val isTSpinPerformed = checkIsTSpinUseCase(mino = mino, board = board)
-        println(isTSpinPerformed)
         calculateScore(linesCleared = linesCount, isTSpinPerformed = isTSpinPerformed)
     }
 
@@ -149,22 +164,36 @@ class GameViewModel(
         _lastActionWasRotation.value = mark
     }
 
-    fun startGame() {
-        _score.value = 0
-        _screenState.value = ScreenState.Game
-    }
-
     fun endGame() {
         val score = _score.value
         val highScore = _highScore.value
         if(score != null && highScore != null){
             if (score > highScore) {
                 _highScore.value = score
-                saveHighScore(highScore)
+                saveHighScore(score)
             }
         }
-        _screenState.value = ScreenState.GameOver
 
+        _screenState.value = ScreenState.GameOver
+    }
+
+    fun setScreenState(state: ScreenState) {
+        _screenState.value = state
+    }
+
+    fun initGame() {
+        _board.value = Board()
+        _tetriMinoList.value = TetriMinoList()
+        _score.value = 0
+        _comboCount.value = 0
+        _isSwapped.value = false
+        _lastActionWasRotation.value = false
+        spawnTetriMino()
+        updateGhostMino()
+    }
+
+    fun changeToMenu(){
+        _screenState.value = ScreenState.Menu
     }
 
     private fun loadHighScore(): Int {
@@ -175,6 +204,9 @@ class GameViewModel(
 
     private fun saveHighScore(score: Int) {
         val context: Context = getApplication<Application>().applicationContext
+        // ここで保持されたデータはアプリを終了しても残るみたい
+        // また、再ビルドしてもデータが残る
+        // ただし、アンインストールしたりキャッシュを削除すると消える
         val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
         prefs.edit().putInt("high_score", score).apply()
     }
