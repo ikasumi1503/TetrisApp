@@ -22,7 +22,7 @@ class OnCollisionYUseCase( // TODO: ぶつかった時に一マス移動させ�
             )
             gameViewModel.createBoardWithUpdateCells(newCell)
         }
-
+        println("onCollision")
         // ライン削除
         gameViewModel.checkAndClearLines()
 
@@ -34,6 +34,7 @@ class OnCollisionYUseCase( // TODO: ぶつかった時に一マス移動させ�
         }
 
         // ミノについての初期化
+        gameViewModel.setProlongTimeDelayCountLimit(0)
         gameViewModel.markRotation(false)
         gameViewModel.updateIsSwapped(false)
     }

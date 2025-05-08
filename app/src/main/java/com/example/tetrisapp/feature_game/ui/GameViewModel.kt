@@ -45,6 +45,7 @@ class GameViewModel(
     private val _screenState = MutableLiveData(ScreenState.Game)
     // mutableStateOfでもいいかも
     private val _highScore = MutableLiveData(0)
+    private val _prolongTimeDelayCountLimit = MutableLiveData<Int>(0)
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
@@ -58,6 +59,7 @@ class GameViewModel(
     val lastActionWasRotation: LiveData<Boolean> = _lastActionWasRotation
     val screenState: LiveData<ScreenState> = _screenState
     val highScore : LiveData<Int> = _highScore
+    val prolongTimeDelayCountLimit : LiveData<Int> = _prolongTimeDelayCountLimit
 
     init {
         _highScore.value = loadHighScore()
@@ -209,5 +211,9 @@ class GameViewModel(
         // ただし、アンインストールしたりキャッシュを削除すると消える
         val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
         prefs.edit().putInt("high_score", score).apply()
+    }
+
+    fun setProlongTimeDelayCountLimit(count: Int){
+        _prolongTimeDelayCountLimit.value = count
     }
 }

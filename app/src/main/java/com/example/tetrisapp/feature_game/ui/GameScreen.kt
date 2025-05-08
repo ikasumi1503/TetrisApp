@@ -63,7 +63,7 @@ fun GameScreen(gameViewModel: GameViewModel) {
     val isInitialized = remember { mutableStateOf(false) }
     val lastTime: MutableLongState = remember { mutableLongStateOf(System.currentTimeMillis()) }
     val timeDelay: MutableLongState = remember { mutableLongStateOf(0) }
-    val prolongTimeDelayCountLimit = remember { mutableIntStateOf(0) }
+    val prolongTimeDelayCountLimit = gameViewModel.prolongTimeDelayCountLimit.observeAsState(0)
 
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
@@ -239,12 +239,9 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 // 接地時点で操作したら落下しない処理
                 val checkCollisionYUseCase = CheckCollisionYUseCase()
                 val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
-                if (willCollideY && prolongTimeDelayCountLimit.intValue <= 10) {
+                if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
                     timeDelay.longValue = 0
-                    prolongTimeDelayCountLimit.intValue++
-                } else if (prolongTimeDelayCountLimit.intValue > 10) {
-                    prolongTimeDelayCountLimit.intValue = 0
-                    OnCollisionYUseCase(gameViewModel = gameViewModel)
+                    gameViewModel.setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
                 }
 
             }
@@ -309,12 +306,9 @@ fun GameScreen(gameViewModel: GameViewModel) {
                     // 接地時点で回転したら落下しない処理
                     val checkCollisionYUseCase = CheckCollisionYUseCase()
                     val willCollideY = checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
-                    if(willCollideY && prolongTimeDelayCountLimit.intValue <= 10){
+                    if(willCollideY && prolongTimeDelayCountLimit.value <= 10){
                         timeDelay.longValue = 0
-                        prolongTimeDelayCountLimit.intValue ++
-                    }else if(prolongTimeDelayCountLimit.intValue > 10){
-                        prolongTimeDelayCountLimit.intValue = 0
-                        OnCollisionYUseCase(gameViewModel = gameViewModel)
+                        gameViewModel.setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
                     }
                     gameViewModel.updateTetriMino(kickedRotatedMino)
                     gameViewModel.updateGhostMino()
