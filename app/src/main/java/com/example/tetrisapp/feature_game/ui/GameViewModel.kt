@@ -2,6 +2,7 @@ package com.example.tetrisapp.feature_game.ui
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.State
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -11,9 +12,16 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.SideX
+import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
+import com.example.tetrisapp.feature_game.util.GameConstants
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 
 // なぜuiにviewModelを置いているのか？
@@ -43,9 +51,11 @@ class GameViewModel(
     private val _comboCount = MutableLiveData(0)
     private val _lastActionWasRotation = MutableLiveData(false)
     private val _screenState = MutableLiveData(ScreenState.Game)
+
     // mutableStateOfでもいいかも
     private val _highScore = MutableLiveData(0)
     private val _prolongTimeDelayCountLimit = MutableLiveData<Int>(0)
+    private val _timeDelay = MutableStateFlow<Long>(0)
 
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
@@ -58,8 +68,9 @@ class GameViewModel(
     val comboCount: LiveData<Int> = _comboCount
     val lastActionWasRotation: LiveData<Boolean> = _lastActionWasRotation
     val screenState: LiveData<ScreenState> = _screenState
-    val highScore : LiveData<Int> = _highScore
-    val prolongTimeDelayCountLimit : LiveData<Int> = _prolongTimeDelayCountLimit
+    val highScore: LiveData<Int> = _highScore
+    val prolongTimeDelayCountLimit: LiveData<Int> = _prolongTimeDelayCountLimit
+    val timeDelay: StateFlow<Long> = _timeDelay
 
     init {
         _highScore.value = loadHighScore()
@@ -68,17 +79,22 @@ class GameViewModel(
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
     // UIがわで使うのはgameViewModel.createBoardWithUpdateCellsとする
-    fun createBoardWithUpdateCells(cell: Cell){
+    fun createBoardWithUpdateCells(cell: Cell) {
         // newCell = cell じゃなくてcellをそのまま入れてもいいけど、newCell = cellのほうが分かりやすい・統一感ある
         _board.value = _board.value?.createBoardWithUpdateCells(newCell = cell)
     }
 
-    fun updateTetriMino(mino: TetriMino){
+    fun updateTetriMino(mino: TetriMino) {
         _tetriMino.value = _tetriMino.value?.updateTetriMino(mino = mino)
     }
 
+    fun updateTimeDelay(newTimeDelay: Long) {
+        _timeDelay.value = newTimeDelay
+        println("timeDelay")
+    }
+
     fun swapHoldAndNext() {
-        if(isSwapped.value == true) return
+        if (isSwapped.value == true) return
         val currentMino = requireNotNull(_tetriMino.value) { "Current tetri mino is null!" }
         val minoType = _tetriMinoList.value?.tetriMinoList?.getOrNull(0)
             ?: throw IllegalStateException("Mino list is empty!")
@@ -89,14 +105,14 @@ class GameViewModel(
         updateGhostMino()
     }
 
-    fun updateIsSwapped(updatedIsSwapped: Boolean){
+    fun updateIsSwapped(updatedIsSwapped: Boolean) {
         _isSwapped.value = updatedIsSwapped
     }
 
-    fun spawnTetriMino(){
+    fun spawnTetriMino() {
         // テトリミノの一巡と次の操作するミノを呼び出して適用する
         val result = _tetriMinoList.value?.spawnTetriMino()
-        if(result != null){
+        if (result != null) {
             val (nextMinoType, nextMinoList) = result
             _tetriMino.value = TetriMino(_type = nextMinoType)
             _tetriMinoList.value = nextMinoList
@@ -107,18 +123,18 @@ class GameViewModel(
         val checkCollisionYUseCase = CheckCollisionYUseCase()
         val board = _board.value
         val mino = _tetriMino.value
-        if(board != null && mino != null){
+        if (board != null && mino != null) {
             val isCollide = checkCollisionYUseCase(
                 board = board,
                 mino = mino.copy(_position = Pair(mino.position.first, mino.position.second - 1))
             )
-            if(isCollide){
+            if (isCollide) {
                 endGame()
             }
         }
     }
 
-    fun checkAndClearLines(){
+    fun checkAndClearLines() {
         // _boardの中身はLiveDataでnullになる可能性があるのでletを使ってnullになるかもしれませんよ、と書かないといけない
         val board = _board.value ?: return
         val mino = _tetriMino.value ?: return
@@ -129,7 +145,7 @@ class GameViewModel(
         calculateScore(linesCleared = linesCount, isTSpinPerformed = isTSpinPerformed)
     }
 
-    fun updateGhostMino(){
+    fun updateGhostMino() {
         // ?: return ... もしもnullならreturn してね、という意味
         val mino = _tetriMino.value ?: return
         val board = _board.value ?: return
@@ -169,7 +185,7 @@ class GameViewModel(
     fun endGame() {
         val score = _score.value
         val highScore = _highScore.value
-        if(score != null && highScore != null){
+        if (score != null && highScore != null) {
             if (score > highScore) {
                 _highScore.value = score
                 saveHighScore(score)
@@ -194,7 +210,7 @@ class GameViewModel(
         updateGhostMino()
     }
 
-    fun changeToMenu(){
+    fun changeToMenu() {
         _screenState.value = ScreenState.Menu
     }
 
@@ -213,7 +229,148 @@ class GameViewModel(
         prefs.edit().putInt("high_score", score).apply()
     }
 
-    fun setProlongTimeDelayCountLimit(count: Int){
+    fun setProlongTimeDelayCountLimit(count: Int) {
         _prolongTimeDelayCountLimit.value = count
+    }
+
+    fun moveX(
+        sideX: SideX,
+        board: Board,
+        mino: TetriMino,
+        prolongTimeDelayCountLimit: State<Int>
+    ) { // TODO: useCaseにしておく
+        val sideToNumUseCase = SideXToNumUseCase()
+        val sideToNum = sideToNumUseCase(sideX = sideX)
+
+        val checkCollisionXUseCase = CheckCollisionXUseCase()
+        // CheckCollisionXUseCaseのなかのwhenが分かりやすいのでsideToNumではなくsideを渡している
+        val willCollideX = checkCollisionXUseCase(board = board, mino = mino, sideX = sideX)
+
+        // 壁やミノと当たったら動かさない
+        if (willCollideX) {
+            return
+        } else {
+            val x = mino.position.first
+            val y = mino.position.second
+            // なににもあたらなければ左に動かす
+            val newMino = mino.copy(
+                _position = Pair(
+                    x + sideToNum, y
+                )
+            )
+            updateTetriMino(newMino)
+            updateGhostMino()
+            markRotation(false)
+
+            // TODO: ここuseCaseでまとめた方がいいかも
+            // 接地時点で操作したら落下しない処理
+            val checkCollisionYUseCase = CheckCollisionYUseCase()
+            val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
+            if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
+                updateTimeDelay(0)
+                setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
+            }
+
+        }
+
+    }
+
+    fun rotate(rotateDir: Int, mino: TetriMino, board: Board) {
+        // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
+        val newRotation =
+            (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
+        val rotatedMino = mino.copy(_rotation = newRotation)
+
+        // SRSルールというテトリミノの回転ルールを適用している
+        // https://tetrisch.github.io/main/srs.html
+
+        val key = Pair(mino.rotation, rotatedMino.rotation)
+
+        val kickOffsets = if (mino.type == MinoType.I)
+            GameConstants.I_KickTable[key] ?: error("Missing kick data for I: $key")
+        else
+            GameConstants.JLSTZ_KickTable[key] ?: error("Missing kick data for JLSTZ: $key")
+
+
+        // それぞれのオフセットを適用
+        for (kickOffset in kickOffsets) {
+            val newPosition = Pair(
+                mino.position.first + kickOffset.first, mino.position.second + kickOffset.second
+            )
+
+            // オフセットを適用したとき、回転後のミノで壁やミノと被っているものがないか確認
+            val kickedRotatedMino = rotatedMino.copy(_position = newPosition)
+            val isCollided =
+                kickedRotatedMino.type.shapes[kickedRotatedMino.rotation].any { relativePosition ->
+                    val kickedRotatedMinoPartsX =
+                        kickedRotatedMino.position.first + relativePosition.first
+                    val kickedRotatedMinoPartsY =
+                        kickedRotatedMino.position.second + relativePosition.second
+
+                    // 画面外になっているかどうか
+                    val isOutOfBounds =
+                        kickedRotatedMinoPartsX < 0 || kickedRotatedMinoPartsX >= board.cells[0].size || kickedRotatedMinoPartsY < 0 || kickedRotatedMinoPartsY >= board.cells.size
+
+                    // 他のミノと被っているかどうか
+                    val isOverlapping =
+                        board.cells.getOrNull(kickedRotatedMinoPartsY)?.getOrNull(
+                            kickedRotatedMinoPartsX
+                        )?.isFilled == true
+
+
+
+                    isOutOfBounds || isOverlapping
+                }
+
+            // 回転後のミノで被っていなければ確定
+            if (!isCollided) {
+
+                // 接地時点で回転したら落下しない処理
+                val checkCollisionYUseCase = CheckCollisionYUseCase()
+                val willCollideY =
+                    checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
+                if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
+                    updateTimeDelay(0)
+                    setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
+                }
+                updateTetriMino(kickedRotatedMino)
+                updateGhostMino()
+                markRotation(true)
+                break
+            }
+        }
+
+
+    }
+
+    fun softDrop(mino: TetriMino, board: Board) {
+        // 壁への当たり判定
+        val checkCollisionYUseCase = CheckCollisionYUseCase()
+        val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
+
+        if (willCollideY) {
+            // 衝突するならそこにミノを設置して新しいミノを作成
+            val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = this)
+            onCollisionYUseCase(mino = mino)
+        } else {
+            // 衝突してないならミノを一つ下に落とす
+            val newMino = mino.copy(
+                _position = Pair(mino.position.first, mino.position.second + 1)
+            )
+            updateTetriMino(newMino)
+            markRotation(false)
+        }
+
+        updateTimeDelay(0)
+    }
+
+    fun hardDrop(ghostMino: TetriMino, mino: TetriMino) {
+        val newMino = mino.copy(
+            _position = ghostMino.position
+        )
+        updateTetriMino(newMino)
+        OnCollisionYUseCase(gameViewModel = this)
+        updateGhostMino()
+        updateTimeDelay(1000L)
     }
 }

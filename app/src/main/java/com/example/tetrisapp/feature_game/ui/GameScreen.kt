@@ -1,6 +1,5 @@
 package com.example.tetrisapp.feature_game.ui
 
-import android.util.MutableBoolean
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,33 +8,36 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.model.MinoType
-import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
-import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
-import com.example.tetrisapp.feature_game.util.GameConstants
+import com.example.tetrisapp.feature_game.ui.game_component.FallingMino
+import com.example.tetrisapp.feature_game.ui.game_component.GhostMino
+import com.example.tetrisapp.feature_game.ui.game_component.NextMino
 import kotlinx.coroutines.delay
 
 
@@ -62,20 +64,29 @@ fun GameScreen(gameViewModel: GameViewModel) {
     )
     val isInitialized = remember { mutableStateOf(false) }
     val lastTime: MutableLongState = remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val timeDelay: MutableLongState = remember { mutableLongStateOf(0) }
     val prolongTimeDelayCountLimit = gameViewModel.prolongTimeDelayCountLimit.observeAsState(0)
+    val score = gameViewModel.score.value
+    val nextMino = gameViewModel.tetriMinoList.value?.tetriMinoList?.get(0)
+    val timeDelay = gameViewModel.timeDelay
 
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
     // 自然落下の処理
     LaunchedEffect(Unit) { // TODO: ViewModel内で使うようにする
+
         // 最初に生成するミノの選択
         gameViewModel.spawnTetriMino()
         isInitialized.value = true
 
+
         while (true) {
             val currentTime = System.currentTimeMillis()
-            if (timeDelay.longValue >= 1000L
+            // StateFlowで実装した。
+            // 最初はファイルの上部にvalueやobserveAsStateでアクセスしていたけど、ループ内でviewModelで取得した初期値がcurrentDelayに入っていた。
+            // つまり、最初の値が参照されていて変更が検知されなかった。
+            // minoを読み込むときにはオブジェクトの値を読みに行ってて、ミノの生成ごとにそれに対応するオブジェクトが生成されていたから、読み込むことができていた
+            val currentDelay = gameViewModel.timeDelay.value
+            if (currentDelay >= 1000L
             ) {
 
                 // 壁への当たり判定
@@ -96,12 +107,13 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 }
 
                 // TimeDelayを0にする
-                timeDelay.longValue = 0
+                gameViewModel.updateTimeDelay(0)
+            } else {
+                // TimeDelayにcurrentTime-lastTimeを足す
+                gameViewModel.updateTimeDelay(currentDelay + currentTime - lastTime.longValue)
             }
-
-            // TimeDelayにcurrentTime-lastTimeを足す
-            timeDelay.value += currentTime - lastTime.longValue
             lastTime.longValue = currentTime
+
 
             delay(16L) // 60fpsくらい
             // TODO: もしもミノの出現位置に既にミノがあればゲームオーバーにする
@@ -120,7 +132,16 @@ fun GameScreen(gameViewModel: GameViewModel) {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.border(1.dp, Color.Gray)) {
+            Box(modifier = Modifier
+                .border(1.dp, Color.Gray)
+                // clickable はmodifier末尾に入れた方がいいらしい
+                // 大きさとか決まった時点でクリックできる範囲を決めたいから
+                .clickable {
+                    gameViewModel.hardDrop(
+                        ghostMino = ghostMino,
+                        mino = mino
+                    )
+                }) {
 
                 // セルが横10列が縦に20個並んでいるものを描画している
                 Column {
@@ -138,228 +159,113 @@ fun GameScreen(gameViewModel: GameViewModel) {
                 }
 
                 // ゴーストの描画
-                if (isInitialized.value) {
-                    for (relativePosition in ghostMino.type.shapes[ghostMino.rotation]) {
-                        Box(
-                            modifier = Modifier
-                                // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
-                                .offset(
-                                    x = ((ghostMino.position.first + relativePosition.first) * 20).dp,
-                                    y = ((ghostMino.position.second + relativePosition.second) * 20).dp
-                                )
-                                .size(20.dp)
-                                .background(Color.Gray.copy(alpha = 0.3f))
-                                .border(1.dp, Color.Gray)
-                        )
-                    }
-                }
+                GhostMino(isInitialized = isInitialized, ghostMino = ghostMino)
 
                 // テトリミノの描画
-                if (isInitialized.value) {
-                    for (relativePosition in mino.type.shapes[mino.rotation]) {
-                        Box(
-                            modifier = Modifier
-                                // sizeとbackgroundを先においてしまうと、先に色がついて正しく表示されない
-                                .offset(
-                                    x = ((mino.position.first + relativePosition.first) * 20).dp,
-                                    y = ((mino.position.second + relativePosition.second) * 20).dp
-                                )
-                                .size(20.dp)
-                                .background(mino.type.color)
-                        )
-                    }
-                }
-
+                FallingMino(isInitialized = isInitialized, mino = mino)
             }
 
             // Nextの表示
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .border(1.dp, Color.Gray)
-                    .clickable {
-
-                    }
-            ) {
-                Text(
-                    text = "NEXT", modifier = Modifier.align(Alignment.TopCenter)
+            if (nextMino != null && score != null) {
+                NextMino(
+                    gameViewModel = gameViewModel,
+                    isInitialized = isInitialized,
+                    nextMino = nextMino,
+                    score = score
                 )
-
-                val nextMino = gameViewModel.tetriMinoList.value?.tetriMinoList?.get(0)
-                if (isInitialized.value && nextMino != null) {
-                    val shape = nextMino.shapes[0]
-                    val cellSize = 20
-                    val boxCenter = 50  // 100 / 2
-
-                    // 最大値と最小値の中心「位置」を求めるので、半マス分ずらす必要あるので、+1する
-                    val centerX = (shape.minOf { it.first } + shape.maxOf { it.first } + 1) / 2f
-                    val centerY = (shape.minOf { it.second } + shape.maxOf { it.second } + 1) / 2f
-
-                    for ((x, y) in shape) {
-                        val offsetX = ((x - centerX) * cellSize + boxCenter).dp
-                        val offsetY =
-                            ((y - centerY) * cellSize + boxCenter + 10).dp // 10dpだけNEXTの下にずらす
-
-                        Box(
-                            modifier = Modifier
-                                .offset(x = offsetX, y = offsetY)
-                                .size(cellSize.dp)
-                                .background(nextMino.color)
-                                .border(1.dp, Color.Black)
-                        )
-                    }
-                    Text(gameViewModel.score.value.toString())
-                }
             }
-        }
-
-        fun moveX(sideX: SideX) { // TODO: useCaseにしておく
-            val sideToNumUseCase = SideXToNumUseCase()
-            val sideToNum = sideToNumUseCase(sideX = sideX)
-
-            val checkCollisionXUseCase = CheckCollisionXUseCase()
-            // CheckCollisionXUseCaseのなかのwhenが分かりやすいのでsideToNumではなくsideを渡している
-            val willCollideX = checkCollisionXUseCase(board = board, mino = mino, sideX = sideX)
-
-            // 壁やミノと当たったら動かさない
-            if (willCollideX) {
-                return
-            } else {
-                // なににもあたらなければ左に動かす
-                val newMino = mino.copy(
-                    _position = Pair(
-                        mino.position.first + sideToNum, mino.position.second
-                    )
-                )
-                gameViewModel.updateTetriMino(newMino)
-                gameViewModel.updateGhostMino()
-                gameViewModel.markRotation(false)
-
-                // TODO: ここuseCaseでまとめた方がいいかも
-                // 接地時点で操作したら落下しない処理
-                val checkCollisionYUseCase = CheckCollisionYUseCase()
-                val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
-                if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
-                    timeDelay.longValue = 0
-                    gameViewModel.setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
-                }
-
-            }
-
-        }
-
-
-
-
-        // rotateDir...時計回り→+1、反時計回り→-1
-        fun rotate(rotateDir: Int) {
-            // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
-            val newRotation =
-                (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
-            val rotatedMino = mino.copy(_rotation = newRotation)
-
-            // SRSルールというテトリミノの回転ルールを適用している
-            // https://tetrisch.github.io/main/srs.html
-
-            val key = Pair(mino.rotation, rotatedMino.rotation)
-
-            val kickOffsets = if (mino.type == MinoType.I)
-                GameConstants.I_KickTable[key] ?: error("Missing kick data for I: $key")
-            else
-                GameConstants.JLSTZ_KickTable[key] ?: error("Missing kick data for JLSTZ: $key")
-
-
-
-            // それぞれのオフセットを適用
-            for (kickOffset in kickOffsets) {
-                val newPosition = Pair(
-                    mino.position.first + kickOffset.first, mino.position.second + kickOffset.second
-                )
-
-                // オフセットを適用したとき、回転後のミノで壁やミノと被っているものがないか確認
-                val kickedRotatedMino = rotatedMino.copy(_position = newPosition)
-                val isCollided =
-                    kickedRotatedMino.type.shapes[kickedRotatedMino.rotation].any { relativePosition ->
-                        val kickedRotatedMinoPartsX =
-                            kickedRotatedMino.position.first + relativePosition.first
-                        val kickedRotatedMinoPartsY =
-                            kickedRotatedMino.position.second + relativePosition.second
-
-                        // 画面外になっているかどうか
-                        val isOutOfBounds =
-                            kickedRotatedMinoPartsX < 0 || kickedRotatedMinoPartsX >= board.cells[0].size || kickedRotatedMinoPartsY < 0 || kickedRotatedMinoPartsY >= board.cells.size
-
-                        // 他のミノと被っているかどうか
-                        val isOverlapping =
-                            board.cells.getOrNull(kickedRotatedMinoPartsY)?.getOrNull(
-                                kickedRotatedMinoPartsX
-                            )?.isFilled == true
-
-
-
-                        isOutOfBounds || isOverlapping
-                    }
-
-                // 回転後のミノで被っていなければ確定
-                if (!isCollided) {
-
-                    // 接地時点で回転したら落下しない処理
-                    val checkCollisionYUseCase = CheckCollisionYUseCase()
-                    val willCollideY = checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
-                    if(willCollideY && prolongTimeDelayCountLimit.value <= 10){
-                        timeDelay.longValue = 0
-                        gameViewModel.setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
-                    }
-                    gameViewModel.updateTetriMino(kickedRotatedMino)
-                    gameViewModel.updateGhostMino()
-                    gameViewModel.markRotation(true)
-                    break
-                }
-            }
-
-        }
-
-        fun softDrop(){
-            // 壁への当たり判定
-            val checkCollisionYUseCase = CheckCollisionYUseCase()
-            val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
-
-            if (willCollideY) {
-                // 衝突するならそこにミノを設置して新しいミノを作成
-                val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
-                onCollisionYUseCase(mino = mino)
-            } else {
-                // 衝突してないならミノを一つ下に落とす
-                val newMino = mino.copy(
-                    _position = Pair(mino.position.first, mino.position.second + 1)
-                )
-                gameViewModel.updateTetriMino(newMino)
-                gameViewModel.markRotation(false)
-            }
-
-            timeDelay.longValue = 0
-        }
-
-        fun hardDrop(){
-            val newMino = mino.copy(
-                _position = ghostMino.position
-            )
-            gameViewModel.updateTetriMino(newMino)
-            OnCollisionYUseCase(gameViewModel = gameViewModel)
-            gameViewModel.updateGhostMino()
-            println(gameViewModel.screenState.value)
-            timeDelay.longValue = 1000L
         }
 
         Row {
-            Button(onClick = { moveX(sideX = SideX.LEFT) }) { Text("左") }
-            Button(onClick = { moveX(sideX = SideX.RIGHT) }) { Text("右") }
-            Button(onClick = { rotate(1) }) { Text("右回転") }
-            Button(onClick = { rotate(-1) }) { Text("左回転") }
-        }
-        Button(onClick = { softDrop() }) { Text("下移動") }
-        Button(onClick = { hardDrop() }) { Text("ハードドロップ") }
-        Button(onClick = { gameViewModel.swapHoldAndNext() }) { Text("Swap") }
-    }
 
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row {
+
+                    IconButton(
+                        onClick = {
+                            gameViewModel.moveX(
+                                sideX = SideX.LEFT,
+                                mino = mino,
+                                board = board,
+                                prolongTimeDelayCountLimit = prolongTimeDelayCountLimit
+                            )
+                        }
+                    ) {
+                        Icon(
+                            Icons.Filled.KeyboardArrowLeft,
+                            contentDescription = "Left",
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            gameViewModel.moveX(
+                                sideX = SideX.RIGHT,
+                                mino = mino,
+                                board = board,
+                                prolongTimeDelayCountLimit = prolongTimeDelayCountLimit
+                            )
+                        }
+                    ) {
+                        Icon(
+                            Icons.Filled.KeyboardArrowRight,
+                            contentDescription = "Right",
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = {
+                        gameViewModel.softDrop(
+                            mino = mino,
+                            board = board
+                        )
+                    }
+                ) {
+                    Icon(
+                        Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "SoftDrop",
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    gameViewModel.rotate(
+                        rotateDir = 1,
+                        mino = mino,
+                        board = board
+                    )
+                }
+            ) {
+                Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = "RotateClockWise",
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+            IconButton(
+                onClick = {
+                    gameViewModel.rotate(
+                        rotateDir = -1,
+                        mino = mino,
+                        board = board
+                    )
+                }
+            ) {
+                Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = "RotateAntiClockWise",
+                    modifier = Modifier
+                        .size(48.dp)
+                        // 左右反転にしてる
+                        .graphicsLayer(scaleX = -1f)
+                )
+            }
+        }
+    }
 }
