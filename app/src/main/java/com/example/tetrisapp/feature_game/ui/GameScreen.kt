@@ -32,13 +32,11 @@ import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.model.MinoType
-import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
 import com.example.tetrisapp.feature_game.ui.game_component.FallingMino
 import com.example.tetrisapp.feature_game.ui.game_component.GhostMino
 import com.example.tetrisapp.feature_game.ui.game_component.NextMino
-import kotlinx.coroutines.delay
+import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 
 // テトリスのゲーム画面の表示のみを行う
@@ -76,52 +74,20 @@ fun GameScreen(gameViewModel: GameViewModel) {
 
         // 最初に生成するミノの選択
         gameViewModel.spawnTetriMino()
+
+        // ミノが選択された後にミノの描画やゴーストの表示を行いたいので、初期化されたかをtrueにする
         isInitialized.value = true
 
-
+        // 自由落下処理
         while (true) {
-            val currentTime = System.currentTimeMillis()
-            // StateFlowで実装した。
-            // 最初はファイルの上部にvalueやobserveAsStateでアクセスしていたけど、ループ内でviewModelで取得した初期値がcurrentDelayに入っていた。
-            // つまり、最初の値が参照されていて変更が検知されなかった。
-            // minoを読み込むときにはオブジェクトの値を読みに行ってて、ミノの生成ごとにそれに対応するオブジェクトが生成されていたから、読み込むことができていた
-            val currentDelay = gameViewModel.timeDelay.value
-            if (currentDelay >= 1000L
-            ) {
-
-                // 壁への当たり判定
-                val checkCollisionYUseCase = CheckCollisionYUseCase()
-                val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
-
-                if (willCollideY) {
-                    // 衝突するならそこにミノを設置して新しいミノを作成
-                    val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = gameViewModel)
-                    onCollisionYUseCase(mino = mino)
-                } else {
-                    // 衝突してないならミノを一つ下に落とす
-                    val newMino = mino.copy(
-                        _position = Pair(mino.position.first, mino.position.second + 1)
-                    )
-                    gameViewModel.updateTetriMino(newMino)
-                    gameViewModel.markRotation(false)
-                }
-
-                // TimeDelayを0にする
-                gameViewModel.updateTimeDelay(0)
-            } else {
-                // TimeDelayにcurrentTime-lastTimeを足す
-                gameViewModel.updateTimeDelay(currentDelay + currentTime - lastTime.longValue)
-            }
-            lastTime.longValue = currentTime
-
-
-            delay(16L) // 60fpsくらい
-            // TODO: もしもミノの出現位置に既にミノがあればゲームオーバーにする
+            gameViewModel.gravity(
+                timeDelay = timeDelay,
+                board = board,
+                mino = mino,
+                lastTime = lastTime
+            )
         }
     }
-
-    // TODO: スワイプによってミノの位置を変える(横)
-
 
     Column(
         modifier = Modifier.fillMaxSize(),

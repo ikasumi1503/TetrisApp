@@ -2,14 +2,14 @@ package com.example.tetrisapp.feature_game.domain.usecase
 
 import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
-import com.example.tetrisapp.feature_game.ui.GameViewModel
+import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 class OnCollisionYUseCase( // TODO: ぶつかった時に一マス移動させる処理とかあるのでこれ名前変更したい
     private val gameViewModel: GameViewModel
 ) {
     operator fun invoke(
         mino: TetriMino,
-        ) {
+    ) {
         for (relativePosition in mino.type.shapes[mino.rotation]) {
             // ミノの配置
             val newCell = Cell(

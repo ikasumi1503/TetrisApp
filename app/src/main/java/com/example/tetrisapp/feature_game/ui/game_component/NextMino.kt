@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.model.MinoType
-import com.example.tetrisapp.feature_game.ui.GameViewModel
+import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 @Composable
 fun NextMino(

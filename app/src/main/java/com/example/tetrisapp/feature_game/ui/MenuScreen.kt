@@ -8,11 +8,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 @Composable
 // Unit ... voidに相当する
-fun MenuScreen(gameViewModel: GameViewModel, onStartGame: ()-> Unit) {
+fun MenuScreen(gameViewModel: GameViewModel, onStartGame: () -> Unit) {
 
     Column(
         modifier = Modifier
@@ -22,11 +22,11 @@ fun MenuScreen(gameViewModel: GameViewModel, onStartGame: ()-> Unit) {
     ) {
         Text(text = "最高得点")
 
-        Button (onClick = {onStartGame()}){
+        Button(onClick = { onStartGame() }) {
             Text(text = "Game Start")
         }
 
-        Button (onClick = {}){
+        Button(onClick = {}) {
             Text(text = "Impossible")
         }
 

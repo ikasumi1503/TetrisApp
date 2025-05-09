@@ -1,14 +1,11 @@
 package com.example.tetrisapp.feature_game.ui
 
-import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.tetrisapp.app.GameViewModelFactory
+import com.example.tetrisapp.feature_game.ui.viewmodel.LocalGameViewModel
 
 
 enum class ScreenState {
@@ -18,22 +15,18 @@ enum class ScreenState {
 }
 
 @Composable
-fun MainScreen(){
+fun MainScreen() {
     val gameSessionId = remember { mutableIntStateOf(0) }
+    val gameViewModel = LocalGameViewModel.current
+    val screenState = gameViewModel.screenState.observeAsState(ScreenState.Menu).value
 
-    // 新しいゲームを始める時にkeyを指定してviewModelを新規作成するけど、毎回古いものは破棄するので重たくならないらしい。
-    // 本来はMainActivityでviewModelsを使いたかったけど、@Composableの中でしかviewModelが使えなかったので、こちらに置いた
-    val gameViewModel: GameViewModel = viewModel(
-        key = "GameViewModel-${gameSessionId.intValue}",
-        factory = GameViewModelFactory(LocalContext.current.applicationContext as Application)
-    )
-    val screenState = gameViewModel.screenState.observeAsState().value
-
-    screenState?.let {
+    screenState.let {
+        // このitはscreenStateを参照している
         when (it) {
-            ScreenState.Game -> key (gameSessionId){
+            ScreenState.Game -> key(gameSessionId) {
                 GameScreen(gameViewModel = gameViewModel)
             }
+
             ScreenState.GameOver -> GameOverScreen(gameViewModel = gameViewModel)
             ScreenState.Menu -> MenuScreen(gameViewModel = gameViewModel, onStartGame = {
                 gameViewModel.initGame()
