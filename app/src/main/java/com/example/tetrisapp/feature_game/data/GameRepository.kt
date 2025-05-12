@@ -13,6 +13,5 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 // ローカルにデータを保存したり、読み込んだりする処理
 // データ型の変換(ドメインロジックで頻繁にデータの変換を行う場合はUseCase内で、API通信などのためにデータの型を変換する場合にはレポジトリ内で変換を行う)
 interface GameRepository {
-    fun moveDown(): TetriMino
 }
 

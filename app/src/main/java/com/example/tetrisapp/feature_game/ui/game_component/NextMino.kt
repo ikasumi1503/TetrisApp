@@ -21,7 +21,6 @@ fun NextMino(
     gameViewModel: GameViewModel,
     isInitialized: MutableState<Boolean>,
     nextMino: MinoType,
-    score: Int
 ) {
     Box(
         modifier = Modifier
@@ -57,7 +56,6 @@ fun NextMino(
                         .border(1.dp, Color.Black)
                 )
             }
-            Text(score.toString())
         }
     }
 }

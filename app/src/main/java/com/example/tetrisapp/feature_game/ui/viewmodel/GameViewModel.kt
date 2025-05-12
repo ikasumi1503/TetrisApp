@@ -15,13 +15,17 @@ import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.CheckGameOverUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
 import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.SpawnMinoUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.SwapHoldUseCase
 import com.example.tetrisapp.feature_game.ui.ScreenState
 import com.example.tetrisapp.feature_game.util.GameConstants
+import com.example.tetrisapp.feature_game.util.LevelConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,8 +42,18 @@ import kotlinx.coroutines.flow.StateFlow
 class GameViewModel(
     // TODO: 直接渡すと
     private val checkAndClearLinesUseCase: CheckAndClearLinesUseCase = CheckAndClearLinesUseCase(),
+    private val swapHoldUseCase: SwapHoldUseCase = SwapHoldUseCase(),
+    private val checkCollisionYUseCase: CheckCollisionYUseCase = CheckCollisionYUseCase(),
+    private val spawnMinoUseCase: SpawnMinoUseCase = SpawnMinoUseCase(),
+    private val checkGameOverUseCase: CheckGameOverUseCase = CheckGameOverUseCase(
+        checkCollisionY = checkCollisionYUseCase
+    ),
+    private val checkIsTSpinUseCase: CheckIsTSpinUseCase = CheckIsTSpinUseCase(),
+
+
     application: Application,
 ) : AndroidViewModel(application = application) {
+    private val levelInfo = LevelConstants.levelsInfo
 
     // ここでuiで使うプロパティをどんどん入れていく
 
@@ -54,6 +68,10 @@ class GameViewModel(
     private val _comboCount = MutableLiveData(0)
     private val _lastActionWasRotation = MutableLiveData(false)
     private val _screenState = MutableLiveData(ScreenState.Game)
+    private val _isPaused = MutableLiveData(false)
+    private val _time = MutableLiveData(0L)
+    private val _delayLimit = MutableLiveData(levelInfo[1]?.second ?: 1000L)
+    private val _level = MutableLiveData(1)
 
     // mutableStateOfでもいいかも
     private val _highScore = MutableLiveData(0)
@@ -74,6 +92,10 @@ class GameViewModel(
     val highScore: LiveData<Int> = _highScore
     val prolongTimeDelayCountLimit: LiveData<Int> = _prolongTimeDelayCountLimit
     val timeDelay: StateFlow<Long> = _timeDelay
+    val isPaused: LiveData<Boolean> = _isPaused
+    val time: LiveData<Long> = _time
+    val delayLimit: LiveData<Long> = _delayLimit
+    val level: LiveData<Int> = _level
 
     init {
         _highScore.value = loadHighScore()
@@ -87,25 +109,38 @@ class GameViewModel(
         _board.value = _board.value?.createBoardWithUpdateCells(newCell = cell)
     }
 
+    // 単純なものはviewModelでOK
+    fun pause() {
+        _isPaused.value = true
+    }
+
+    fun resume() {
+        _isPaused.value = false
+    }
+
     fun updateTetriMino(mino: TetriMino) {
         _tetriMino.value = _tetriMino.value?.updateTetriMino(mino = mino)
     }
 
     fun updateTimeDelay(newTimeDelay: Long) {
         _timeDelay.value = newTimeDelay
-        println("timeDelay")
     }
 
     fun swapHoldAndNext() {
-        if (isSwapped.value == true) return
-        val currentMino = requireNotNull(_tetriMino.value) { "Current tetri mino is null!" }
-        val minoType = _tetriMinoList.value?.tetriMinoList?.getOrNull(0)
-            ?: throw IllegalStateException("Mino list is empty!")
+        val current = _tetriMino.value ?: return
+        val list = _tetriMinoList.value ?: return
+        val swapped = _isSwapped.value ?: false
 
-        _tetriMinoList.value = _tetriMinoList.value?.swapHoldAndNext(mino = currentMino)
-        _tetriMino.value = TetriMino(_type = minoType)
-        updateIsSwapped(true)
-        updateGhostMino()
+        swapHoldUseCase(
+            mino = current,
+            tetriMinoList = list,
+            currentIsSwapped = swapped
+        )?.let { result ->
+            _tetriMino.value = result.newMino
+            _tetriMinoList.value = result.newMinoList
+            updateIsSwapped(true)
+            updateGhostMino()
+        }
     }
 
     fun updateIsSwapped(updatedIsSwapped: Boolean) {
@@ -114,7 +149,7 @@ class GameViewModel(
 
     fun spawnTetriMino() {
         // テトリミノの一巡と次の操作するミノを呼び出して適用する
-        val result = _tetriMinoList.value?.spawnTetriMino()
+        val result = _tetriMinoList.value?.let { spawnMinoUseCase(it) }
         if (result != null) {
             val (nextMinoType, nextMinoList) = result
             _tetriMino.value = TetriMino(_type = nextMinoType)
@@ -123,17 +158,10 @@ class GameViewModel(
         updateGhostMino()
 
         // ミノの生成時にミノがその位置にあればゲームオーバー
-        val checkCollisionYUseCase = CheckCollisionYUseCase()
         val board = _board.value
         val mino = _tetriMino.value
-        if (board != null && mino != null) {
-            val isCollide = checkCollisionYUseCase(
-                board = board,
-                mino = mino.copy(_position = Pair(mino.position.first, mino.position.second - 1))
-            )
-            if (isCollide) {
-                endGame()
-            }
+        if (checkGameOverUseCase(board, mino)) {
+            endGame()
         }
     }
 
@@ -142,10 +170,10 @@ class GameViewModel(
         val board = _board.value ?: return
         val mino = _tetriMino.value ?: return
         val (newBoard, linesCount) = checkAndClearLinesUseCase(board)
-        _board.value = newBoard
-        val checkIsTSpinUseCase = CheckIsTSpinUseCase()
         val isTSpinPerformed = checkIsTSpinUseCase(mino = mino, board = board)
+
         calculateScore(linesCleared = linesCount, isTSpinPerformed = isTSpinPerformed)
+        _board.value = newBoard
     }
 
     fun updateGhostMino() {
@@ -390,7 +418,13 @@ class GameViewModel(
         // つまり、最初の値が参照されていて変更が検知されなかった。
         // minoを読み込むときにはオブジェクトの値を読みに行ってて、ミノの生成ごとにそれに対応するオブジェクトが生成されていたから、読み込むことができていた
         val currentDelay = timeDelay.value
-        if (currentDelay >= 1000L
+        val delayLimit = _delayLimit.value ?: return
+        val time = _time.value ?: return
+        val level = _level.value ?: return
+
+        println(delayLimit)
+
+        if (currentDelay >= delayLimit
         ) {
 
             // 壁への当たり判定
@@ -416,8 +450,17 @@ class GameViewModel(
             // TimeDelayにcurrentTime-lastTimeを足す
             updateTimeDelay(currentDelay + currentTime - lastTime.longValue)
         }
-        lastTime.longValue = currentTime
 
+        // レベル1で時間が20秒以上になったら
+        // レベルを1上げる
+        // そのときの落下スピードを決める
+        if (time >= (levelInfo[level]?.first ?: 0L) && level < levelInfo.size + 1) {
+            _delayLimit.value = levelInfo[level + 1]?.second ?: 1000L
+            _level.value = level + 1
+        }
+
+        _time.value = _time.value?.plus(currentTime - lastTime.longValue)
+        lastTime.longValue = currentTime
 
         delay(16L) // 60fpsくらい
     }
