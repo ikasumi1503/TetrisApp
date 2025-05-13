@@ -2,7 +2,6 @@ package com.example.tetrisapp.feature_game.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.State
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -12,6 +11,7 @@ import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType
+import com.example.tetrisapp.feature_game.domain.usecase.CalculateScoreUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
@@ -19,6 +19,7 @@ import com.example.tetrisapp.feature_game.domain.usecase.CheckGameOverUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.ProcessPlacementUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
 import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SpawnMinoUseCase
@@ -49,6 +50,13 @@ class GameViewModel(
         checkCollisionY = checkCollisionYUseCase
     ),
     private val checkIsTSpinUseCase: CheckIsTSpinUseCase = CheckIsTSpinUseCase(),
+    private val calculateScoreUseCase: CalculateScoreUseCase = CalculateScoreUseCase(),
+    private val computeGhostMinoUseCase: ComputeGhostMinoUseCase = ComputeGhostMinoUseCase(),
+    private val processPlacementUseCase: ProcessPlacementUseCase = ProcessPlacementUseCase(
+        clearLines = CheckAndClearLinesUseCase(),
+        checkTSpin = CheckIsTSpinUseCase(),
+        calcScore = CalculateScoreUseCase()
+    ),
 
 
     application: Application,
@@ -78,6 +86,9 @@ class GameViewModel(
     private val _prolongTimeDelayCountLimit = MutableLiveData<Int>(0)
     private val _timeDelay = MutableStateFlow<Long>(0)
 
+    // TODO: 初期化はGameScreenのwhile内でやるといいかも
+    private val _lastTime = MutableLiveData<Long>(System.currentTimeMillis())
+
     // ここで外部から値を取得するためのプロパティを作る
     // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
     val board: LiveData<Board> = _board
@@ -96,10 +107,14 @@ class GameViewModel(
     val time: LiveData<Long> = _time
     val delayLimit: LiveData<Long> = _delayLimit
     val level: LiveData<Int> = _level
+    val lastTime: LiveData<Long> = _lastTime
 
     init {
         _highScore.value = loadHighScore()
     }
+
+    // TODO: UseCase使う
+    // TODO: 使う値を引数から持ってくる
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -115,6 +130,7 @@ class GameViewModel(
     }
 
     fun resume() {
+        _lastTime.value = System.currentTimeMillis()
         _isPaused.value = false
     }
 
@@ -156,8 +172,11 @@ class GameViewModel(
             _tetriMinoList.value = nextMinoList
         }
         updateGhostMino()
-
+        checkGameOverAndEnd()
         // ミノの生成時にミノがその位置にあればゲームオーバー
+    }
+
+    fun checkGameOverAndEnd() {
         val board = _board.value
         val mino = _tetriMino.value
         if (checkGameOverUseCase(board, mino)) {
@@ -165,48 +184,24 @@ class GameViewModel(
         }
     }
 
+    // UIから呼ぶものをviewModelの関数に置くので、checkAndClearLinesとcheckIsTSpinを統合してcheckAndClearLinesにした
     fun checkAndClearLines() {
-        // _boardの中身はLiveDataでnullになる可能性があるのでletを使ってnullになるかもしれませんよ、と書かないといけない
         val board = _board.value ?: return
         val mino = _tetriMino.value ?: return
-        val (newBoard, linesCount) = checkAndClearLinesUseCase(board)
-        val isTSpinPerformed = checkIsTSpinUseCase(mino = mino, board = board)
-
-        calculateScore(linesCleared = linesCount, isTSpinPerformed = isTSpinPerformed)
-        _board.value = newBoard
+        val currentScore = _score.value ?: return
+        val currentCombo = _comboCount.value ?: return
+        println("checkAndClearLines")
+        val result = processPlacementUseCase(board, mino, currentScore, currentCombo)
+        _board.value = result.newBoard
+        _score.value = result.newScore
+        _comboCount.value = result.newCombo
     }
 
     fun updateGhostMino() {
         // ?: return ... もしもnullならreturn してね、という意味
         val mino = _tetriMino.value ?: return
         val board = _board.value ?: return
-        val computeGhostMinoUseCase = ComputeGhostMinoUseCase()
         _ghostMino.value = computeGhostMinoUseCase(mino, board)
-    }
-
-    fun calculateScore(linesCleared: Int, isTSpinPerformed: Boolean): Int {
-        if (linesCleared <= 0) {
-            _comboCount.value = 0
-            return _score.value ?: 0 // 変更なしの場合は現在のスコアを返す
-        }
-
-        val scoreIncrement = when {
-            isTSpinPerformed && linesCleared == 1 -> 500
-            isTSpinPerformed && linesCleared == 2 -> 800
-            isTSpinPerformed && linesCleared == 3 -> 1200
-
-            linesCleared == 1 -> 100
-            linesCleared == 2 -> 300
-            linesCleared == 3 -> 500
-            linesCleared == 4 -> 800
-            else -> 0
-        }
-
-        val updatedScore = (_score.value ?: 0) + scoreIncrement + (_comboCount.value ?: 0) * 50
-        _score.value = updatedScore
-        _comboCount.value = (_comboCount.value ?: 0) + 1
-
-        return updatedScore
     }
 
     fun markRotation(mark: Boolean) {
@@ -222,7 +217,6 @@ class GameViewModel(
                 saveHighScore(score)
             }
         }
-
         _screenState.value = ScreenState.GameOver
     }
 
@@ -235,6 +229,8 @@ class GameViewModel(
         _tetriMinoList.value = TetriMinoList()
         _score.value = 0
         _comboCount.value = 0
+        _time.value = 0L
+
         _isSwapped.value = false
         _lastActionWasRotation.value = false
         spawnTetriMino()
@@ -264,7 +260,7 @@ class GameViewModel(
         _prolongTimeDelayCountLimit.value = count
     }
 
-    fun moveX(
+    fun moveX( // TODO: 内容をUseCaseに切り出す
         sideX: SideX,
         board: Board,
         mino: TetriMino,
@@ -306,7 +302,7 @@ class GameViewModel(
 
     }
 
-    fun rotate(rotateDir: Int, mino: TetriMino, board: Board) {
+    fun rotate(rotateDir: Int, mino: TetriMino, board: Board) { // TODO: 内容をUseCaseに切り出す
         // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
         val newRotation =
             (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
@@ -374,7 +370,7 @@ class GameViewModel(
 
     }
 
-    fun softDrop(mino: TetriMino, board: Board) {
+    fun softDrop(mino: TetriMino, board: Board) { // TODO: 内容をUseCaseに切り出す
         // 壁への当たり判定
         val checkCollisionYUseCase = CheckCollisionYUseCase()
         val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
@@ -395,7 +391,7 @@ class GameViewModel(
         updateTimeDelay(0)
     }
 
-    fun hardDrop(ghostMino: TetriMino, mino: TetriMino) {
+    fun hardDrop(ghostMino: TetriMino, mino: TetriMino) { // TODO: 内容をUseCaseに切り出す
         val newMino = mino.copy(
             _position = ghostMino.position
         )
@@ -406,10 +402,10 @@ class GameViewModel(
     }
 
     suspend fun gravity(
+        // TODO: 内容をUseCaseに切り出す
         timeDelay: StateFlow<Long>,
         board: Board,
         mino: TetriMino,
-        lastTime: MutableLongState
     ) {
 
         val currentTime = System.currentTimeMillis()
@@ -421,8 +417,8 @@ class GameViewModel(
         val delayLimit = _delayLimit.value ?: return
         val time = _time.value ?: return
         val level = _level.value ?: return
+        val lastTime = _lastTime.value ?: return
 
-        println(delayLimit)
 
         if (currentDelay >= delayLimit
         ) {
@@ -448,7 +444,7 @@ class GameViewModel(
             updateTimeDelay(0)
         } else {
             // TimeDelayにcurrentTime-lastTimeを足す
-            updateTimeDelay(currentDelay + currentTime - lastTime.longValue)
+            updateTimeDelay(currentDelay + currentTime - lastTime)
         }
 
         // レベル1で時間が20秒以上になったら
@@ -459,8 +455,8 @@ class GameViewModel(
             _level.value = level + 1
         }
 
-        _time.value = _time.value?.plus(currentTime - lastTime.longValue)
-        lastTime.longValue = currentTime
+        _time.value = _time.value?.plus(currentTime - lastTime)
+        _lastTime.value = currentTime
 
         delay(16L) // 60fpsくらい
     }

@@ -49,7 +49,6 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         )
     )
     val isInitialized = remember { mutableStateOf(false) }
-    val lastTime: MutableLongState = remember { mutableLongStateOf(System.currentTimeMillis()) }
     val prolongTimeDelayCountLimit = gameViewModel.prolongTimeDelayCountLimit.observeAsState(0)
     val score = gameViewModel.score.value
     val nextMino = gameViewModel.tetriMinoList.value?.tetriMinoList?.get(0)
@@ -80,7 +79,6 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
                     timeDelay = timeDelay,
                     board = board,
                     mino = mino,
-                    lastTime = lastTime
                 )
             }
         }
