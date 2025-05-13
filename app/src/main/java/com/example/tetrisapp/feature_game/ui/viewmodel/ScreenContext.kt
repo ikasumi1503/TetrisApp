@@ -30,7 +30,6 @@ fun ScreenContext(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalGameKey provides gameKey.intValue,
         LocalGameKeyUpdater provides { newKey ->
-            println(gameKey.intValue)
             gameKey.intValue = newKey
         },
         LocalGameViewModel provides gameViewModel

@@ -2,10 +2,7 @@ package com.example.tetrisapp.feature_game.ui.viewmodel
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.runtime.State
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
@@ -26,10 +23,9 @@ import com.example.tetrisapp.feature_game.domain.usecase.SpawnMinoUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SwapHoldUseCase
 import com.example.tetrisapp.feature_game.ui.ScreenState
 import com.example.tetrisapp.feature_game.util.GameConstants
-import com.example.tetrisapp.feature_game.util.LevelConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 
 // なぜuiにviewModelを置いているのか？
@@ -61,56 +57,10 @@ class GameViewModel(
 
     application: Application,
 ) : AndroidViewModel(application = application) {
-    private val levelInfo = LevelConstants.levelsInfo
-
-    // ここでuiで使うプロパティをどんどん入れていく
-
-    // privateにして直接変更及び取得ができないようにする
-    // ViewModelはデータを入れる箱で、LiveDataはそのデータを反映させる液晶の役割
-    private val _board = MutableLiveData(Board())
-    private val _tetriMinoList = MutableLiveData(TetriMinoList())
-    private val _tetriMino = MutableLiveData(TetriMino(_type = MinoType.T))
-    private val _ghostMino = MutableLiveData<TetriMino>()
-    private val _isSwapped = MutableLiveData<Boolean>(false)
-    private val _score = MutableLiveData<Int>(0)
-    private val _comboCount = MutableLiveData(0)
-    private val _lastActionWasRotation = MutableLiveData(false)
-    private val _screenState = MutableLiveData(ScreenState.Game)
-    private val _isPaused = MutableLiveData(false)
-    private val _time = MutableLiveData(0L)
-    private val _delayLimit = MutableLiveData(levelInfo[1]?.second ?: 1000L)
-    private val _level = MutableLiveData(1)
-
-    // mutableStateOfでもいいかも
-    private val _highScore = MutableLiveData(0)
-    private val _prolongTimeDelayCountLimit = MutableLiveData<Int>(0)
-    private val _timeDelay = MutableStateFlow<Long>(0)
-
-    // TODO: 初期化はGameScreenのwhile内でやるといいかも
-    private val _lastTime = MutableLiveData<Long>(System.currentTimeMillis())
-
-    // ここで外部から値を取得するためのプロパティを作る
-    // LiveDataは変更があったら自動的にUIにデータの内容を反映させてくれる型
-    val board: LiveData<Board> = _board
-    val tetriMinoList: LiveData<TetriMinoList> = _tetriMinoList
-    val tetriMino: LiveData<TetriMino> = _tetriMino
-    val ghostMino: LiveData<TetriMino> = _ghostMino
-    val isSwapped: LiveData<Boolean> = _isSwapped
-    val score: LiveData<Int> = _score
-    val comboCount: LiveData<Int> = _comboCount
-    val lastActionWasRotation: LiveData<Boolean> = _lastActionWasRotation
-    val screenState: LiveData<ScreenState> = _screenState
-    val highScore: LiveData<Int> = _highScore
-    val prolongTimeDelayCountLimit: LiveData<Int> = _prolongTimeDelayCountLimit
-    val timeDelay: StateFlow<Long> = _timeDelay
-    val isPaused: LiveData<Boolean> = _isPaused
-    val time: LiveData<Long> = _time
-    val delayLimit: LiveData<Long> = _delayLimit
-    val level: LiveData<Int> = _level
-    val lastTime: LiveData<Long> = _lastTime
+    val state = MutableStateFlow(GameViewModelState())
 
     init {
-        _highScore.value = loadHighScore()
+        state.update { it.copy(highScore = loadHighScore()) }
     }
 
     // TODO: UseCase使う
@@ -121,124 +71,136 @@ class GameViewModel(
     // UIがわで使うのはgameViewModel.createBoardWithUpdateCellsとする
     fun createBoardWithUpdateCells(cell: Cell) {
         // newCell = cell じゃなくてcellをそのまま入れてもいいけど、newCell = cellのほうが分かりやすい・統一感ある
-        _board.value = _board.value?.createBoardWithUpdateCells(newCell = cell)
+        state.update { it.copy(board = it.board.createBoardWithUpdateCells(newCell = cell)) }
     }
 
     // 単純なものはviewModelでOK
     fun pause() {
-        _isPaused.value = true
+        state.update { it.copy(isPaused = true) }
     }
 
     fun resume() {
-        _lastTime.value = System.currentTimeMillis()
-        _isPaused.value = false
+        state.update { it.copy(lastTime = System.currentTimeMillis(), isPaused = false) }
     }
 
     fun updateTetriMino(mino: TetriMino) {
-        _tetriMino.value = _tetriMino.value?.updateTetriMino(mino = mino)
+        state.update { it.copy(tetriMino = it.tetriMino.updateTetriMino(mino = mino)) }
     }
 
     fun updateTimeDelay(newTimeDelay: Long) {
-        _timeDelay.value = newTimeDelay
+        state.update { it.copy(timeDelay = newTimeDelay) }
+
     }
 
     fun swapHoldAndNext() {
-        val current = _tetriMino.value ?: return
-        val list = _tetriMinoList.value ?: return
-        val swapped = _isSwapped.value ?: false
-
         swapHoldUseCase(
-            mino = current,
-            tetriMinoList = list,
-            currentIsSwapped = swapped
+            mino = state.value.tetriMino,
+            tetriMinoList = state.value.tetriMinoList,
+            currentIsSwapped = state.value.isSwapped
         )?.let { result ->
-            _tetriMino.value = result.newMino
-            _tetriMinoList.value = result.newMinoList
+            state.update { it.copy(tetriMino = result.newMino, tetriMinoList = result.newMinoList) }
             updateIsSwapped(true)
             updateGhostMino()
         }
     }
 
     fun updateIsSwapped(updatedIsSwapped: Boolean) {
-        _isSwapped.value = updatedIsSwapped
+        state.update { it.copy(isSwapped = updatedIsSwapped) }
     }
 
     fun spawnTetriMino() {
         // テトリミノの一巡と次の操作するミノを呼び出して適用する
-        val result = _tetriMinoList.value?.let { spawnMinoUseCase(it) }
-        if (result != null) {
-            val (nextMinoType, nextMinoList) = result
-            _tetriMino.value = TetriMino(_type = nextMinoType)
-            _tetriMinoList.value = nextMinoList
-        }
+        val result = spawnMinoUseCase(state.value.tetriMinoList)
+        val (nextMinoType, nextMinoList) = result
+        state.update { it.copy(tetriMino = TetriMino(_type = nextMinoType)) }
+        state.update { it.copy(tetriMinoList = nextMinoList) }
         updateGhostMino()
         checkGameOverAndEnd()
         // ミノの生成時にミノがその位置にあればゲームオーバー
     }
 
     fun checkGameOverAndEnd() {
-        val board = _board.value
-        val mino = _tetriMino.value
+        // state.value から現在のボードとテトリミノを取得
+        val board = state.value.board
+        val mino = state.value.tetriMino
         if (checkGameOverUseCase(board, mino)) {
             endGame()
         }
     }
 
     // UIから呼ぶものをviewModelの関数に置くので、checkAndClearLinesとcheckIsTSpinを統合してcheckAndClearLinesにした
-    fun checkAndClearLines() {
-        val board = _board.value ?: return
-        val mino = _tetriMino.value ?: return
-        val currentScore = _score.value ?: return
-        val currentCombo = _comboCount.value ?: return
-        println("checkAndClearLines")
-        val result = processPlacementUseCase(board, mino, currentScore, currentCombo)
-        _board.value = result.newBoard
-        _score.value = result.newScore
-        _comboCount.value = result.newCombo
+    fun processPlacement() {
+        val board = state.value.board
+        val mino = state.value.tetriMino
+        val currentScore = state.value.score
+        val currentCombo = state.value.comboCount
+        val (newBoard, newScore, newCombo) = processPlacementUseCase(
+            board,
+            mino,
+            currentScore,
+            currentCombo
+        )
+
+        state.update { it.copy(board = newBoard, score = newScore, comboCount = newCombo) }
     }
 
     fun updateGhostMino() {
-        // ?: return ... もしもnullならreturn してね、という意味
-        val mino = _tetriMino.value ?: return
-        val board = _board.value ?: return
-        _ghostMino.value = computeGhostMinoUseCase(mino, board)
+        state.update {
+            it.copy(ghostMino = computeGhostMinoUseCase(it.tetriMino, it.board))
+        }
     }
 
     fun markRotation(mark: Boolean) {
-        _lastActionWasRotation.value = mark
+        state.update {
+            it.copy(lastActionWasRotation = mark)
+        }
     }
 
     fun endGame() {
-        val score = _score.value
-        val highScore = _highScore.value
-        if (score != null && highScore != null) {
-            if (score > highScore) {
-                _highScore.value = score
-                saveHighScore(score)
+        state.update {
+            var updatedHighScore = it.highScore // highScore を更新する可能性があるため var にする
+
+            if (it.score > it.highScore) {
+                updatedHighScore = it.score // ハイスコアを更新
+                saveHighScore(it.score) // ハイスコアを保存
             }
+
+            // ゲームオーバー状態と更新されたハイスコアを新しい状態にコピーして返す
+            it.copy(
+                screenState = ScreenState.GameOver,
+                highScore = updatedHighScore
+            )
         }
-        _screenState.value = ScreenState.GameOver
     }
 
-    fun setScreenState(state: ScreenState) {
-        _screenState.value = state
+    fun setScreenState(screenState: ScreenState) {
+        state.update {
+            it.copy(screenState = screenState)
+        }
     }
 
     fun initGame() {
-        _board.value = Board()
-        _tetriMinoList.value = TetriMinoList()
-        _score.value = 0
-        _comboCount.value = 0
-        _time.value = 0L
-
-        _isSwapped.value = false
-        _lastActionWasRotation.value = false
+        state.update {
+            // ゲームの初期状態を新しい状態にコピーして返す
+            it.copy(
+                board = Board(), // 新しいボードを作成
+                tetriMinoList = TetriMinoList(), // 新しいテトリミノリストを作成
+                score = 0, // スコアをリセット
+                comboCount = 0, // コンボカウントをリセット
+                elapsedTime = 0L, // 時間をリセット
+                isSwapped = false, // ホールドスワップフラグをリセット
+                lastActionWasRotation = false // 最終アクションフラグをリセット
+            )
+        }
+        // 状態更新後にミノを生成し、ゴーストミノを更新
         spawnTetriMino()
         updateGhostMino()
     }
 
     fun changeToMenu() {
-        _screenState.value = ScreenState.Menu
+        state.update {
+            it.copy(screenState = ScreenState.Menu)
+        }
     }
 
     private fun loadHighScore(): Int {
@@ -257,14 +219,16 @@ class GameViewModel(
     }
 
     fun setProlongTimeDelayCountLimit(count: Int) {
-        _prolongTimeDelayCountLimit.value = count
+        state.update {
+            it.copy(prolongTimeDelayCountLimit = count)
+        }
     }
 
     fun moveX( // TODO: 内容をUseCaseに切り出す
         sideX: SideX,
         board: Board,
         mino: TetriMino,
-        prolongTimeDelayCountLimit: State<Int>
+        prolongTimeDelayCountLimit: Int
     ) { // TODO: useCaseにしておく
         val sideToNumUseCase = SideXToNumUseCase()
         val sideToNum = sideToNumUseCase(sideX = sideX)
@@ -293,9 +257,9 @@ class GameViewModel(
             // 接地時点で操作したら落下しない処理
             val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
-            if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
+            if (willCollideY && prolongTimeDelayCountLimit <= 10) {
                 updateTimeDelay(0)
-                setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
+                setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit + 1)
             }
 
         }
@@ -356,9 +320,9 @@ class GameViewModel(
                 val checkCollisionYUseCase = CheckCollisionYUseCase()
                 val willCollideY =
                     checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
-                if (willCollideY && prolongTimeDelayCountLimit.value <= 10) {
+                if (willCollideY && state.value.prolongTimeDelayCountLimit <= 10) {
                     updateTimeDelay(0)
-                    setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit.value + 1)
+                    setProlongTimeDelayCountLimit(state.value.prolongTimeDelayCountLimit + 1)
                 }
                 updateTetriMino(kickedRotatedMino)
                 updateGhostMino()
@@ -403,9 +367,6 @@ class GameViewModel(
 
     suspend fun gravity(
         // TODO: 内容をUseCaseに切り出す
-        timeDelay: StateFlow<Long>,
-        board: Board,
-        mino: TetriMino,
     ) {
 
         val currentTime = System.currentTimeMillis()
@@ -413,16 +374,16 @@ class GameViewModel(
         // 最初はファイルの上部にvalueやobserveAsStateでアクセスしていたけど、ループ内でviewModelで取得した初期値がcurrentDelayに入っていた。
         // つまり、最初の値が参照されていて変更が検知されなかった。
         // minoを読み込むときにはオブジェクトの値を読みに行ってて、ミノの生成ごとにそれに対応するオブジェクトが生成されていたから、読み込むことができていた
-        val currentDelay = timeDelay.value
-        val delayLimit = _delayLimit.value ?: return
-        val time = _time.value ?: return
-        val level = _level.value ?: return
-        val lastTime = _lastTime.value ?: return
-
+        val currentDelay = state.value.timeDelay
+        val delayLimit = state.value.delayLimit
+        val time = state.value.elapsedTime
+        val level = state.value.level
+        val lastTime = state.value.lastTime
+        val mino = state.value.tetriMino
+        val board = state.value.board
 
         if (currentDelay >= delayLimit
         ) {
-
             // 壁への当たり判定
             val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
@@ -450,13 +411,19 @@ class GameViewModel(
         // レベル1で時間が20秒以上になったら
         // レベルを1上げる
         // そのときの落下スピードを決める
-        if (time >= (levelInfo[level]?.first ?: 0L) && level < levelInfo.size + 1) {
-            _delayLimit.value = levelInfo[level + 1]?.second ?: 1000L
-            _level.value = level + 1
+        if (time >= (state.value.levelInfo[level]?.first
+                ?: 0L) && level < state.value.levelInfo.size + 1
+        ) {
+            val nextLevelInfo = state.value.levelInfo[level + 1] ?: Pair(0L, 1000L)
+            state.update { it.copy(delayLimit = nextLevelInfo.second, level = it.level + 1) }
         }
 
-        _time.value = _time.value?.plus(currentTime - lastTime)
-        _lastTime.value = currentTime
+        state.update {
+            it.copy(
+                elapsedTime = it.elapsedTime.plus(currentTime - lastTime),
+                lastTime = currentTime
+            )
+        }
 
         delay(16L) // 60fpsくらい
     }
