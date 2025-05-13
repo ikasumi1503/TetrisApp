@@ -1,5 +1,6 @@
 package com.example.tetrisapp.feature_game.ui.viewmodel
 
+import GenerateLockCellsUseCase
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
@@ -7,7 +8,6 @@ import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
-import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.usecase.CalculateScoreUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
@@ -15,14 +15,15 @@ import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckGameOverUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.OnCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.MoveXUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.ProcessPlacementUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.RotateMinoUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
 import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.SoftDropUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SpawnMinoUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.SwapHoldUseCase
 import com.example.tetrisapp.feature_game.ui.ScreenState
-import com.example.tetrisapp.feature_game.util.GameConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -53,7 +54,18 @@ class GameViewModel(
         checkTSpin = CheckIsTSpinUseCase(),
         calcScore = CalculateScoreUseCase()
     ),
-
+    private val moveXUseCase: MoveXUseCase = MoveXUseCase(
+        sideXToNum = SideXToNumUseCase(),
+        checkCollisionX = CheckCollisionXUseCase(),
+        checkCollisionY = CheckCollisionYUseCase()
+    ),
+    private val rotateMinoUseCase: RotateMinoUseCase = RotateMinoUseCase(
+        checkCollisionY = CheckCollisionYUseCase()
+    ),
+    private val generateLockCellsUseCase: GenerateLockCellsUseCase = GenerateLockCellsUseCase(),
+    private val softDropUseCase: SoftDropUseCase = SoftDropUseCase(
+        checkCollisionY = CheckCollisionYUseCase()
+    ),
 
     application: Application,
 ) : AndroidViewModel(application = application) {
@@ -65,6 +77,21 @@ class GameViewModel(
 
     // TODO: UseCase使う
     // TODO: 使う値を引数から持ってくる
+
+    // viewModelの書き方のルール
+    // ①ViewModel は UseCase を呼び、返り値で State（UIState）を更新
+    // ②ViewModel内のものはUIで使うメソッドのみにしておく。ドメインロジックはすべて UseCase の中にいれる。
+    // ③UseCase 同士の組み合わせはドメイン層（UseCase内）で OK
+    // ④ViewModel ↔ UseCase の依存は一方向（ViewModel → UseCase）のみ
+    // ⑤一つのfunには一つの役割
+
+    // viewModelの書き方(反省)
+    // ①viewModel内の値を変更する処理があるならviewModel内に書く
+    // ②実際の処理の内容はUseCaseに書いていく
+    // ③大きなUseCaseどうしの共通処理など、小さな部品が作りたいなら、小さなUseCaseを作る
+
+    // !!は使わない方向
+    // UseCase内でviewModelの関数を使わないようにしている
 
     // MVVM(一つの場所に一つの責任)の原則的に、窓口であるviewModelでデータに対応するプロパティやメソッドをまとめてUIで使えるようにする。
     // つまり、UI側でboard.createBoardWithUpdateCellsとはせずにviewModelでまとめたものを使う。
@@ -135,10 +162,7 @@ class GameViewModel(
         val currentScore = state.value.score
         val currentCombo = state.value.comboCount
         val (newBoard, newScore, newCombo) = processPlacementUseCase(
-            board,
-            mino,
-            currentScore,
-            currentCombo
+            board, mino, currentScore, currentCombo
         )
 
         state.update { it.copy(board = newBoard, score = newScore, comboCount = newCombo) }
@@ -167,8 +191,7 @@ class GameViewModel(
 
             // ゲームオーバー状態と更新されたハイスコアを新しい状態にコピーして返す
             it.copy(
-                screenState = ScreenState.GameOver,
-                highScore = updatedHighScore
+                screenState = ScreenState.GameOver, highScore = updatedHighScore
             )
         }
     }
@@ -224,143 +247,125 @@ class GameViewModel(
         }
     }
 
-    fun moveX( // TODO: 内容をUseCaseに切り出す
-        sideX: SideX,
-        board: Board,
-        mino: TetriMino,
-        prolongTimeDelayCountLimit: Int
-    ) { // TODO: useCaseにしておく
-        val sideToNumUseCase = SideXToNumUseCase()
-        val sideToNum = sideToNumUseCase(sideX = sideX)
+    fun onMoveX(sideX: SideX) {
+        val stateValue = state.value
+        val result = moveXUseCase(
+            sideX = sideX,
+            board = stateValue.board,
+            mino = stateValue.tetriMino,
+            currentProlongCount = stateValue.prolongTimeDelayCountLimit
+        )
 
-        val checkCollisionXUseCase = CheckCollisionXUseCase()
-        // CheckCollisionXUseCaseのなかのwhenが分かりやすいのでsideToNumではなくsideを渡している
-        val willCollideX = checkCollisionXUseCase(board = board, mino = mino, sideX = sideX)
+        if (!result.didMove || result.movedMino == null) return
 
-        // 壁やミノと当たったら動かさない
-        if (willCollideX) {
-            return
-        } else {
-            val x = mino.position.first
-            val y = mino.position.second
-            // なににもあたらなければ左に動かす
-            val newMino = mino.copy(
-                _position = Pair(
-                    x + sideToNum, y
+        // 1. ミノ位置更新
+        state.update { it.copy(tetriMino = result.movedMino) }
+
+        // 2. ゴーストミノ更新
+        state.update {
+            it.copy(
+                ghostMino = computeGhostMinoUseCase(result.movedMino, state.value.board)
+            )
+        }
+
+        // 3. 回転フラグリセット
+        state.update { it.copy(lastActionWasRotation = false) }
+
+        // 4. delay リセット＆prolong カウント更新
+        if (result.didResetDelay) {
+            state.update {
+                it.copy(
+                    timeDelay = 0L,
+                    prolongTimeDelayCountLimit = state.value.prolongTimeDelayCountLimit + 1
                 )
-            )
-            updateTetriMino(newMino)
-            updateGhostMino()
-            markRotation(false)
-
-            // TODO: ここuseCaseでまとめた方がいいかも
-            // 接地時点で操作したら落下しない処理
-            val checkCollisionYUseCase = CheckCollisionYUseCase()
-            val willCollideY = checkCollisionYUseCase(board = board, mino = mino)
-            if (willCollideY && prolongTimeDelayCountLimit <= 10) {
-                updateTimeDelay(0)
-                setProlongTimeDelayCountLimit(prolongTimeDelayCountLimit + 1)
-            }
-
-        }
-
-    }
-
-    fun rotate(rotateDir: Int, mino: TetriMino, board: Board) { // TODO: 内容をUseCaseに切り出す
-        // 左回転の時でmino.rotation=0の時、newRotationが+3になってほしいので、mino.type.shapes.sizeを足しておく
-        val newRotation =
-            (mino.type.shapes.size + mino.rotation + rotateDir) % mino.type.shapes.size
-        val rotatedMino = mino.copy(_rotation = newRotation)
-
-        // SRSルールというテトリミノの回転ルールを適用している
-        // https://tetrisch.github.io/main/srs.html
-
-        val key = Pair(mino.rotation, rotatedMino.rotation)
-
-        val kickOffsets = if (mino.type == MinoType.I)
-            GameConstants.I_KickTable[key] ?: error("Missing kick data for I: $key")
-        else
-            GameConstants.JLSTZ_KickTable[key] ?: error("Missing kick data for JLSTZ: $key")
-
-
-        // それぞれのオフセットを適用
-        for (kickOffset in kickOffsets) {
-            val newPosition = Pair(
-                mino.position.first + kickOffset.first, mino.position.second + kickOffset.second
-            )
-
-            // オフセットを適用したとき、回転後のミノで壁やミノと被っているものがないか確認
-            val kickedRotatedMino = rotatedMino.copy(_position = newPosition)
-            val isCollided =
-                kickedRotatedMino.type.shapes[kickedRotatedMino.rotation].any { relativePosition ->
-                    val kickedRotatedMinoPartsX =
-                        kickedRotatedMino.position.first + relativePosition.first
-                    val kickedRotatedMinoPartsY =
-                        kickedRotatedMino.position.second + relativePosition.second
-
-                    // 画面外になっているかどうか
-                    val isOutOfBounds =
-                        kickedRotatedMinoPartsX < 0 || kickedRotatedMinoPartsX >= board.cells[0].size || kickedRotatedMinoPartsY < 0 || kickedRotatedMinoPartsY >= board.cells.size
-
-                    // 他のミノと被っているかどうか
-                    val isOverlapping =
-                        board.cells.getOrNull(kickedRotatedMinoPartsY)?.getOrNull(
-                            kickedRotatedMinoPartsX
-                        )?.isFilled == true
-
-
-
-                    isOutOfBounds || isOverlapping
-                }
-
-            // 回転後のミノで被っていなければ確定
-            if (!isCollided) {
-
-                // 接地時点で回転したら落下しない処理
-                val checkCollisionYUseCase = CheckCollisionYUseCase()
-                val willCollideY =
-                    checkCollisionYUseCase(board = board, mino = kickedRotatedMino)
-                if (willCollideY && state.value.prolongTimeDelayCountLimit <= 10) {
-                    updateTimeDelay(0)
-                    setProlongTimeDelayCountLimit(state.value.prolongTimeDelayCountLimit + 1)
-                }
-                updateTetriMino(kickedRotatedMino)
-                updateGhostMino()
-                markRotation(true)
-                break
             }
         }
-
-
     }
 
-    fun softDrop(mino: TetriMino, board: Board) { // TODO: 内容をUseCaseに切り出す
-        // 壁への当たり判定
-        val checkCollisionYUseCase = CheckCollisionYUseCase()
-        val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
+    private fun onCollisionY() {
+        val stateValue = state.value
 
-        if (willCollideY) {
-            // 衝突するならそこにミノを設置して新しいミノを作成
-            val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = this)
-            onCollisionYUseCase(mino = mino)
-        } else {
-            // 衝突してないならミノを一つ下に落とす
-            val newMino = mino.copy(
-                _position = Pair(mino.position.first, mino.position.second + 1)
+        // fold ... Listの各要素を受け取って蓄積する
+        // それぞれのセルにに対して処理を行う。
+        // boardAccに更新された一つ一つのセルが入る
+        val newBoard = generateLockCellsUseCase(stateValue.tetriMino)
+            .fold(stateValue.board) { boardAcc, cell ->
+                boardAcc.createBoardWithUpdateCells(newCell = cell)
+            }
+
+        state.update { it.copy(board = newBoard) }
+        // ライン削除
+        processPlacement()
+
+        // 新しいミノの生成
+        spawnTetriMino()
+        val newMino = state.value.tetriMino
+        updateTetriMino(newMino)
+
+        // フラグの初期化
+        setProlongTimeDelayCountLimit(0)
+        markRotation(false)
+        updateIsSwapped(false)
+    }
+
+    fun onRotate(rotateDir: Int) {
+        val stateValue = state.value
+        val result = rotateMinoUseCase(
+            rotateDir = rotateDir,
+            mino = stateValue.tetriMino,
+            board = stateValue.board,
+            currentProlongCount = stateValue.prolongTimeDelayCountLimit
+        )
+
+        if (!result.didRotate || result.rotatedMino == null) return
+
+        // 1) ミノとゴーストミノの更新
+        state.update {
+            it.copy(
+                tetriMino = result.rotatedMino,
+                ghostMino = computeGhostMinoUseCase(result.rotatedMino, it.board),
+                lastActionWasRotation = true
             )
-            updateTetriMino(newMino)
-            markRotation(false)
         }
-
-        updateTimeDelay(0)
+        // 2) delay／prolongCount の更新
+        if (result.didResetDelay) {
+            state.update {
+                it.copy(
+                    timeDelay = 0L, prolongTimeDelayCountLimit = it.prolongTimeDelayCountLimit + 1
+                )
+            }
+        }
     }
 
-    fun hardDrop(ghostMino: TetriMino, mino: TetriMino) { // TODO: 内容をUseCaseに切り出す
+    fun onSoftDrop() {
+        val stateValue = state.value
+        val result = softDropUseCase(
+            mino = stateValue.tetriMino,
+            board = stateValue.board
+        )
+
+        // ② ロックダウンされたら一連の処理へ
+        if (result.didLock) {
+            onCollisionY()    // 既存のロックダウン処理メソッドを呼ぶ
+        }
+        // ③ そうでなければ一段下げたミノを反映
+        else {
+            state.update {
+                it.copy(
+                    tetriMino = result.newMino!!,
+                    lastActionWasRotation = false,
+                    timeDelay = 0L   // drop ごとに delay リセット
+                )
+            }
+        }
+    }
+
+    fun hardDrop(ghostMino: TetriMino, mino: TetriMino) {
         val newMino = mino.copy(
             _position = ghostMino.position
         )
         updateTetriMino(newMino)
-        OnCollisionYUseCase(gameViewModel = this)
+        onCollisionY()
         updateGhostMino()
         updateTimeDelay(1000L)
     }
@@ -368,7 +373,7 @@ class GameViewModel(
     suspend fun gravity(
         // TODO: 内容をUseCaseに切り出す
     ) {
-
+        // TODO: もしもすぐ下に壁やミノがあるなら時間延長
         val currentTime = System.currentTimeMillis()
         // StateFlowで実装した。
         // 最初はファイルの上部にvalueやobserveAsStateでアクセスしていたけど、ループ内でviewModelで取得した初期値がcurrentDelayに入っていた。
@@ -382,16 +387,13 @@ class GameViewModel(
         val mino = state.value.tetriMino
         val board = state.value.board
 
-        if (currentDelay >= delayLimit
-        ) {
+        if (currentDelay >= delayLimit) {
             // 壁への当たり判定
-            val checkCollisionYUseCase = CheckCollisionYUseCase()
             val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
 
             if (willCollideY) {
                 // 衝突するならそこにミノを設置して新しいミノを作成
-                val onCollisionYUseCase = OnCollisionYUseCase(gameViewModel = this)
-                onCollisionYUseCase(mino = mino)
+                onCollisionY()
             } else {
                 // 衝突してないならミノを一つ下に落とす
                 val newMino = mino.copy(
@@ -420,8 +422,7 @@ class GameViewModel(
 
         state.update {
             it.copy(
-                elapsedTime = it.elapsedTime.plus(currentTime - lastTime),
-                lastTime = currentTime
+                elapsedTime = it.elapsedTime.plus(currentTime - lastTime), lastTime = currentTime
             )
         }
 

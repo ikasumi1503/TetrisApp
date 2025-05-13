@@ -131,39 +131,28 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         // 操作ボタン
         GameButtonGroup(
             onMoveRight = {
-                gameViewModel.moveX(
-                    sideX = SideX.RIGHT,
-                    board = board,
-                    mino = mino,
-                    prolongTimeDelayCountLimit = prolongTimeDelayCountLimit
+                gameViewModel.onMoveX(
+                    sideX = SideX.RIGHT
                 )
             },
             onMoveLeft = {
-                gameViewModel.moveX(
-                    sideX = SideX.LEFT,
-                    board = board,
-                    mino = mino,
-                    prolongTimeDelayCountLimit = prolongTimeDelayCountLimit
+                gameViewModel.onMoveX(
+                    sideX = SideX.LEFT
                 )
             },
             onSoftDrop = {
-                gameViewModel.softDrop(
-                    mino = mino,
-                    board = board
+                gameViewModel.onSoftDrop(
+
                 )
             },
             onRotateClockWise = {
-                gameViewModel.rotate(
-                    rotateDir = 1,
-                    mino = mino,
-                    board = board
+                gameViewModel.onRotate(
+                    rotateDir = 1
                 )
             },
             onRotateAntiClockWise = {
-                gameViewModel.rotate(
-                    rotateDir = -1,
-                    mino = mino,
-                    board = board
+                gameViewModel.onRotate(
+                    rotateDir = -1
                 )
             },
         )
