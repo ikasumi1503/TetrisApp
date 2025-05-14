@@ -37,13 +37,20 @@ fun GameBoard(
             for (cellRow in board.cells) {
                 Row {
                     for (cell in cellRow) {
-                        // TODO: Cell全てに灰色のボーダーを当てているので、セル自体にボーダーの色を持たせて、セルごとに色を持たせたい。空セルは灰色で、それ以外のセルは透明でいいかも
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .background(cell.color)
-                                .border(1.dp, Color.Gray.copy(alpha = 0.2f))
-                        )
+                        if (cell.isFilled) {
+                            MinoBlock(
+                                color = cell.color,
+                                position = Pair(0, 0),
+                                isGhost = false
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .background(cell.color)
+                                    .border(1.dp, Color.Gray.copy(alpha = 0.2f))
+                            )
+                        }
                     }
                 }
             }

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
@@ -29,6 +31,31 @@ fun FallingMino(isInitialized: MutableState<Boolean>, mino: TetriMino) {
                     .size(20.dp)
                     .background(mino.type.color)
                     .border(1.dp, Color.Transparent)
+                    .drawBehind {
+                        // 左上にハイライト
+                        drawRect(
+                            color = Color.White.copy(alpha = 0.1f), // ハイライト
+                            size = size.copy(width = size.width / 2, height = size.height / 2)
+                        )
+                        // 右下に影
+                        drawRect(
+                            color = Color.Black.copy(alpha = 0.2f),
+                            topLeft = Offset(
+                                size.width / 2,
+                                size.height / 2
+                            ),
+                            size = size.copy(width = size.width / 2, height = size.height / 2)
+                        )
+                    }
+
+            )
+            MinoBlock(
+                color = mino.type.color,
+                position = Pair(
+                    ((mino.position.first + relativePosition.first) * 20),
+                    ((mino.position.second + relativePosition.second - 1) * 20 + 22)
+                ),
+                isGhost = false
             )
         }
     }

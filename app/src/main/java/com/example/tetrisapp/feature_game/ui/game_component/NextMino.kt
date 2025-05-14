@@ -1,19 +1,13 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 
 @Composable
@@ -44,16 +38,14 @@ fun NextMino(
             val centerY = (shape.minOf { it.second } + shape.maxOf { it.second } + 1) / 2f
 
             for ((x, y) in shape) {
-                val offsetX = ((x - centerX) * cellSize + boxHorizontalCenter).dp
+                val offsetX = ((x - centerX) * cellSize + boxHorizontalCenter).toInt()
                 val offsetY =
-                    ((y - centerY) * cellSize + boxVerticalCenter + 10).dp // 10dpだけNEXTの下にずらす
+                    ((y - centerY) * cellSize + boxVerticalCenter + 10).toInt() // 10dpだけNEXTの下にずらす
 
-                Box(
-                    modifier = Modifier
-                        .offset(x = offsetX, y = offsetY)
-                        .size(cellSize.dp)
-                        .background(nextMino.color)
-                        .border(1.dp, Color.Black)
+                MinoBlock(
+                    color = nextMino.color,
+                    position = Pair(offsetX, offsetY),
+                    isGhost = false
                 )
             }
         }

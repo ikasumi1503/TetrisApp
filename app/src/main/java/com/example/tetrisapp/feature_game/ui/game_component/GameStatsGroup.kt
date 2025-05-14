@@ -1,16 +1,25 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.model.MinoType
@@ -32,28 +41,21 @@ fun GameStatsGroup(
 ) {
     val textColor = Color.White
 
+    // TODO: Pauseボタンを変える
+    // TODO: スコアなどの数値を大きくする
     @Composable
     // RowScopeにしないと、子要素がRowの各要素と認識されなくて間が開かない
-    fun DisplayBox(content: @Composable RowScope.() -> Unit) {
-        Row(
+    fun DisplayBox(content: @Composable ColumnScope.() -> Unit) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(3.dp, Color.Gray)
-                .padding(vertical = 16.dp, horizontal = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 8.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             content()
         }
-    }
-
-    // TODO: こういうのESLintで整形したい
-    Button(
-        onClick = {
-            pause()
-        }
-    ) {
-        Text("Pause")
     }
 
     PauseModal(
