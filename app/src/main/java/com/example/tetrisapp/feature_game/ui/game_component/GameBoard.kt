@@ -24,7 +24,8 @@ fun GameBoard(
     onHardDrop: () -> Unit
 ) {
     Box(modifier = Modifier
-        .border(1.dp, Color.Gray)
+        .background(Color.Black)
+        .border(3.dp, Color.Gray)
         // clickable はmodifier末尾に入れた方がいいらしい
         // 大きさとか決まった時点でクリックできる範囲を決めたいから
         .clickable {
@@ -36,10 +37,12 @@ fun GameBoard(
             for (cellRow in board.cells) {
                 Row {
                     for (cell in cellRow) {
+                        // TODO: Cell全てに灰色のボーダーを当てているので、セル自体にボーダーの色を持たせて、セルごとに色を持たせたい。空セルは灰色で、それ以外のセルは透明でいいかも
                         Box(
                             modifier = Modifier
                                 .size(20.dp)
                                 .background(cell.color)
+                                .border(1.dp, Color.Gray.copy(alpha = 0.2f))
                         )
                     }
                 }

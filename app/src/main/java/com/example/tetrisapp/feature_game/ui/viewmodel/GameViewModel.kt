@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.update
 
 //　ViewModelの役割は？
 // 状態の管理。uiが欲しい状態を整えてあげる中間役。
+
+// TODO: UseCaseの中でUseCaseを使っているときがあるので、直しておく
 class GameViewModel(
     private val swapHoldUseCase: SwapHoldUseCase = SwapHoldUseCase(),
     private val checkCollisionYUseCase: CheckCollisionYUseCase = CheckCollisionYUseCase(),
