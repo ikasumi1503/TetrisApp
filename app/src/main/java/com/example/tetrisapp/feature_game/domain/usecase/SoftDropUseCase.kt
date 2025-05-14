@@ -6,7 +6,7 @@ import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 
 
 data class SoftDropResult(
-    val newMino: TetriMino?,
+    val newMino: TetriMino,
     val didLock: Boolean
 )
 
@@ -18,7 +18,7 @@ class SoftDropUseCase(
         val willCollideY = checkCollisionY(board, mino)
         return if (willCollideY) {
             // ロックダウン
-            SoftDropResult(newMino = null, didLock = true)
+            SoftDropResult(newMino = mino, didLock = true)
         } else {
             // 一段下げ
             val dropped = mino.copy(

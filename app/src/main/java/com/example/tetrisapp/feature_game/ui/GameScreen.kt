@@ -1,9 +1,15 @@
 package com.example.tetrisapp.feature_game.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +20,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tetrisapp.feature_game.domain.usecase.SideX
 import com.example.tetrisapp.feature_game.ui.game_component.GameBoard
@@ -32,7 +40,6 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
     val mino = state.tetriMino
     val ghostMino = state.ghostMino
     val isInitialized = remember { mutableStateOf(false) }
-    val prolongTimeDelayCountLimit = state.prolongTimeDelayCountLimit
     val score = state.score
     val nextMino = state.tetriMinoList.tetriMinoList[0]
     val isPaused = state.isPaused
@@ -86,8 +93,7 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
                 }
             )
 
-            // Nextの表示
-            Column {
+            Column (modifier = Modifier.width(100.dp).height(400.dp)){
                 // Pause
                 Button(
                     onClick = {
@@ -104,26 +110,43 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
                     onResume = { gameViewModel.resume() }
                 )
 
+                @Composable
+                fun Boxed(content: @Composable () -> Unit){
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(3.dp, Color.Gray)
+                            .padding(vertical = 16.dp, horizontal = 8.dp)
+                    ) {
+                        content()
+                    }
+                }
+
                 // Score
-                Text(score.toString() + "POINT")
+                Boxed {
+                    Text("POINT:$score")
+                }
 
                 // Combo
-                Text(combo.toString() + "COMBO")
+                Boxed {
+                    Text("COMBO:$combo")
+                }
 
-                // TODO: Time
                 val time = state.elapsedTime.div(1000)
                 val minutesDisplay = time.div(60)
                 val secondsDisplay = time.rem(60)
-                Text(text = "%02d:%02d".format(minutesDisplay, secondsDisplay))
 
-                // TODO: LEVEL
+                Boxed { Text(text = "%02d:%02d".format(minutesDisplay, secondsDisplay)) }
 
+                Boxed { Text("Level: ${state.level}") }
 
-                NextMino(
-                    gameViewModel = gameViewModel,
-                    isInitialized = isInitialized,
-                    nextMino = nextMino,
-                )
+                Boxed {
+                    NextMino(
+                        gameViewModel = gameViewModel,
+                        isInitialized = isInitialized,
+                        nextMino = nextMino,
+                    )
+                }
             }
         }
 

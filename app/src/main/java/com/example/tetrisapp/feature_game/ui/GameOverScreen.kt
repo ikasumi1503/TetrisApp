@@ -11,8 +11,8 @@ import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 fun GameOverScreen(gameViewModel: GameViewModel) {
     val gameState = gameViewModel.state.collectAsState()
     Column {
-        Text(text = "${gameState.value.score}")
-        Text(text = "${gameState.value.highScore}")
+        Text(text = "スコア: ${gameState.value.score}")
+        Text(text = "最高スコア: ${gameState.value.highScore}")
 
         Button(onClick = { gameViewModel.changeToMenu() }) {
             Text("メニューに戻る")
