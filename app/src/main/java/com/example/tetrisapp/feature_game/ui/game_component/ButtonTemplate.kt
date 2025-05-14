@@ -1,3 +1,5 @@
+package com.example.tetrisapp.feature_game.ui.game_component
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -60,7 +62,7 @@ fun ButtonTemplate(
                     listOf(Color(0xFFAAAAAA), Color(0xFF444444))
                 )
             )
-            .border(2.dp, Color.Black, shape = CircleShape)
+            .border(2.dp, Color.Black.copy(alpha = 0.5f), shape = CircleShape)
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
                     onClick()

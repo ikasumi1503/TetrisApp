@@ -1,7 +1,5 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
-import ButtonTemplate
-import android.widget.Button
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,6 +83,6 @@ fun GameButtonGroup(
             "RotateClockWiseButton",
             isMirror = false,
             canRepeat = false
-            )
+        )
     }
 }

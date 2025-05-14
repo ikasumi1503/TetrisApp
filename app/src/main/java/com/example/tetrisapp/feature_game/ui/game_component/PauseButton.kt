@@ -1,6 +1,5 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
-import ButtonTemplate
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable

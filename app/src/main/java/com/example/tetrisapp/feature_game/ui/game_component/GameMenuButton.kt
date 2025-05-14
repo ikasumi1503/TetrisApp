@@ -1,6 +1,5 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape

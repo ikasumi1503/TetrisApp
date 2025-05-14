@@ -1,6 +1,7 @@
 package com.example.tetrisapp.feature_game.ui.game_component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,8 @@ fun PauseModal(
                     .fillMaxWidth(0.8f)
                     .wrapContentHeight()
                     .background(Color.Transparent)
+                    .border(width = 4.dp, color = Color.Black.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp)
+                    )
             ) {
                 Column(
                     modifier = Modifier
