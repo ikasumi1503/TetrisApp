@@ -31,7 +31,6 @@ fun GameStatsGroup(
 ) {
     val textColor = Color.White
 
-    // TODO: スコアなどの数値を大きくする
     @Composable
     // RowScopeにしないと、子要素がRowの各要素と認識されなくて間が開かない
     fun DisplayBox(content: @Composable ColumnScope.() -> Unit) {

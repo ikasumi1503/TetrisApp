@@ -284,14 +284,18 @@ class GameViewModel(
         state.update { it.copy(tetriMino = it.tetriMino.updateTetriMino(mino = newMino)) }
 
         // フラグの初期化
+        val levelInfo = state.value.levelInfo[stateValue.level] ?: Pair(0L, 1000L)
         state.update {
             it.copy(
                 timeDelay = 0L,
                 isSwapped = false,
                 lastActionWasRotation = false,
-                prolongTimeDelayCountLimit = 0
+                prolongTimeDelayCountLimit = 0,
+                delayLimit = levelInfo.second,
+                level = it.level
             )
         }
+        state.update { it.copy(delayLimit = levelInfo.second, level = it.level) }
 
         // アニメーションフラグ
         state.update { it.copy(hardDropTrigger = true) }
@@ -403,10 +407,18 @@ class GameViewModel(
             } else {
                 // 衝突してないならミノを一つ下に落とす
                 onSoftDrop()
+
+                // 早すぎると移動の前にミノが固定されてしまうので、防止する
+                val isGrounded: Boolean =
+                    checkCollisionYUseCase(board = state.value.board, mino = state.value.tetriMino)
+                if (isGrounded && delayLimit < 200) {
+                    state.update { it.copy(delayLimit = 200) }
+                }
             }
 
             // TimeDelayを0にする
             state.update { it.copy(timeDelay = 0L) }
+
         } else {
             // TimeDelayにcurrentTime-lastTimeを足す
             state.update { it.copy(timeDelay = currentDelay + currentTime - lastTime) }
@@ -417,9 +429,9 @@ class GameViewModel(
         val time = state.value.elapsedTime
         val level = state.value.level
 
-        val nextLevelInfo = state.value.levelInfo[level + 1] ?: Pair(0L, 1000L)
+        val nextLevelInfo = state.value.levelInfo[level + 1] ?: return
 
-        if (time >= (nextLevelInfo.first) && level < state.value.levelInfo.size + 1
+        if (time >= (nextLevelInfo.first)
         ) {
             state.update { it.copy(delayLimit = nextLevelInfo.second, level = it.level + 1) }
         }
