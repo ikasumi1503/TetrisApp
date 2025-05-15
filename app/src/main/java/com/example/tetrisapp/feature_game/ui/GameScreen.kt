@@ -17,8 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,14 +38,14 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
     val board = state.board
     val mino = state.tetriMino
     val ghostMino = state.ghostMino
-    // TODO: これviewModelで管理したほうがいいかも
-    val isInitialized = remember { mutableStateOf(false) }
+    val isInitialized = state.isInitialized
     val score = state.score
     val nextMino = state.tetriMinoList.tetriMinoList[0]
     val isPaused = state.isPaused
     val combo = state.comboCount
     val level = state.level
     val elapsedTime = state.elapsedTime
+    val isHardDropTriggered = state.hardDropTrigger
 
 
     // LaunchedEffect内のコードは@Composable描画時に一度だけ表示される
@@ -57,7 +55,7 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         gameViewModel.spawnTetriMino()
 
         // ミノが選択された後にミノの描画やゴーストの表示を行いたいので、初期化されたかをtrueにする
-        isInitialized.value = true
+        gameViewModel.updateIsInitialized(true)
     }
 
     LaunchedEffect(isPaused) {
@@ -69,8 +67,6 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
             }
         }
     }
-
-
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -101,7 +97,8 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
                         ghostMino = ghostMino,
                         mino = mino
                     )
-                }
+                },
+                isHardDropTriggered = isHardDropTriggered
             )
 
             Column(
@@ -115,7 +112,6 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
             ) {
                 // Pause
                 GameStatsGroup(
-                    pause = { gameViewModel.pause() },
                     changeToMenu = { gameViewModel.changeToMenu() },
                     initGame = { gameViewModel.initGame() },
                     swapHoldAndNext = { gameViewModel.swapHoldAndNext() },
@@ -125,7 +121,7 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
                     combo = combo,
                     elapsedTime = elapsedTime,
                     level = level,
-                    isInitialized = isInitialized.value,
+                    isInitialized = isInitialized,
                     nextMino = nextMino
                 )
             }

@@ -4,6 +4,7 @@ import GenerateLockCellsUseCase
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
@@ -26,6 +27,7 @@ import com.example.tetrisapp.feature_game.ui.ScreenState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 
 // なぜuiにviewModelを置いているのか？
@@ -93,6 +95,10 @@ class GameViewModel(
     // state.update { it.copy() }はそのまま使っている。funに一つの関数としてまとめてカプセル化しないようにしている。
     // updateする関数が複数乱立したら見にくくなるので、今回のアプリに限っては、この方針。
     // ただし、UIで使うものはupdate関数を作っている。
+
+    fun updateIsInitialized(newIsInitialized: Boolean) {
+        state.update { it.copy(isInitialized = newIsInitialized) }
+    }
 
     fun pause() {
         state.update { it.copy(isPaused = true) }
@@ -258,8 +264,8 @@ class GameViewModel(
     }
 
     private fun onCollisionY() {
-        val stateValue = state.value
 
+        val stateValue = state.value
         // fold ... Listの各要素を受け取って蓄積する
         // それぞれのセルにに対して処理を行う。
         // boardAccに更新された一つ一つのセルが入る
@@ -285,6 +291,13 @@ class GameViewModel(
                 lastActionWasRotation = false,
                 prolongTimeDelayCountLimit = 0
             )
+        }
+
+        // アニメーションフラグ
+        state.update { it.copy(hardDropTrigger = true) }
+        viewModelScope.launch {
+            delay(500)
+            state.update { it.copy(hardDropTrigger = false) }
         }
     }
 

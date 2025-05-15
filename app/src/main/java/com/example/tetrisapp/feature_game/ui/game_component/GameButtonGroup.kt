@@ -58,7 +58,6 @@ fun GameButtonGroup(
                 )
             }
             Spacer(modifier = Modifier.size(verticalSpacerSize))
-            // TODO: 長押しでどんどん落ちていくようにしたい
             ButtonTemplate(
                 onSoftDrop,
                 Icons.Filled.KeyboardArrowDown,

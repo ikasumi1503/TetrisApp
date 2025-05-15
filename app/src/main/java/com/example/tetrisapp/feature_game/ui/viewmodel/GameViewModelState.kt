@@ -31,5 +31,7 @@ data class GameViewModelState(
     val delayLimit: Long = LevelConstants.levelsInfo[1]?.second ?: 1000L,
     val level: Int = 1,
     val lastTime: Long = System.currentTimeMillis(),
-    val levelInfo: Map<Int, Pair<Long, Long>> = LevelConstants.levelsInfo
+    val levelInfo: Map<Int, Pair<Long, Long>> = LevelConstants.levelsInfo,
+    val hardDropTrigger: Boolean = false,
+    val isInitialized: Boolean = false,
 )

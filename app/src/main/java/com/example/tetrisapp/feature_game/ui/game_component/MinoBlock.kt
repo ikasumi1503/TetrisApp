@@ -11,8 +11,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+fun Color.lighten(factor: Float): Color {
+    return Color(
+        red = (red + (1 - red) * factor).coerceIn(0f, 1f),
+        green = (green + (1 - green) * factor).coerceIn(0f, 1f),
+        blue = (blue + (1 - blue) * factor).coerceIn(0f, 1f),
+        alpha = alpha
+    )
+}
+
 @Composable
 fun MinoBlock(color: Color, position: Pair<Int, Int>, isGhost: Boolean) {
+    val backGroundColor = if (isGhost) color.lighten(0.2f) else color
     val backGroundAlpha = if (isGhost) 0.3f else 1f
     val borderAlpha = if (isGhost) 0.35f else 0.8f
 
@@ -26,7 +36,7 @@ fun MinoBlock(color: Color, position: Pair<Int, Int>, isGhost: Boolean) {
                 y = position.second.dp
             )
             .size(20.dp)
-            .background(color.copy(alpha = backGroundAlpha))
+            .background(backGroundColor.copy(alpha = backGroundAlpha))
             .border(1.dp, color.copy(alpha = borderAlpha))
             .drawBehind {
                 // 左上にハイライト

@@ -34,7 +34,11 @@ fun GameOverScreen(gameViewModel: GameViewModel) {
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .wrapContentHeight()
-                .border(width = 4.dp, color = Color.Black.copy(alpha = 0.3f), shape = RoundedCornerShape(8.dp))
+                .border(
+                    width = 4.dp,
+                    color = Color.Black.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(8.dp)
+                )
         ) {
             Column(
                 modifier = Modifier
@@ -49,6 +53,13 @@ fun GameOverScreen(gameViewModel: GameViewModel) {
                 GameMenuButton(
                     onClick = { gameViewModel.changeToMenu() },
                     text = "メニューに戻る"
+                )
+                GameMenuButton(
+                    onClick = {
+                        gameViewModel.initGame()
+                        gameViewModel.setScreenState(ScreenState.Game)
+                    },
+                    text = "やり直す"
                 )
             }
         }

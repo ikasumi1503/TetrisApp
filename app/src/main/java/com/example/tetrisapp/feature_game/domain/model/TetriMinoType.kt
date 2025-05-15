@@ -8,7 +8,6 @@ enum class MinoType(
     val color: Color,
     val shapes: List<List<Pair<Int, Int>>>,
 ) {
-    // TODO: 出現するときに一マス空いていたり、回転が不自然になっているので直しておく
     // 回転に対して右回り
     I(
         Color.Cyan, listOf(
