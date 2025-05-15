@@ -5,7 +5,6 @@ package com.example.tetrisapp.feature_game.util
 object GameConstants {
     private const val MINO_WIDTH = 4
     private const val BOARD_WIDTH = 10
-    const val TO_CENTER = (BOARD_WIDTH / 2) - (MINO_WIDTH / 2)
 
     // constはString型とかシンプルな型にしか適用できない
     val JLSTZ_KickTable = mapOf(

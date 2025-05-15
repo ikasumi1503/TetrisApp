@@ -16,11 +16,10 @@ class SwapHoldUseCase {
         currentIsSwapped: Boolean,
     ): Result? {
         if (currentIsSwapped) return null
-        val currentMino = requireNotNull(mino) { "Current tetri mino is null!" }
         val minoType = tetriMinoList.tetriMinoList.getOrNull(0)
             ?: throw IllegalStateException("Mino list is empty!")
 
-        val newMinoList = tetriMinoList.swapHoldAndNext(mino = currentMino)
+        val newMinoList = tetriMinoList.swapHoldAndNext(mino = mino)
         val newMino = TetriMino(_type = minoType)
         return Result(newMino = newMino, newMinoList = newMinoList)
     }

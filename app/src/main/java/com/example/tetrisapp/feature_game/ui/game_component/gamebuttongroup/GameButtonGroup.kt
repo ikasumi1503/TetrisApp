@@ -27,8 +27,6 @@ fun GameButtonGroup(
     onRotateClockWise: () -> Unit = {},
     onRotateAntiClockWise: () -> Unit = {},
 ) {
-    val buttonSize = 64.dp
-    val buttonContentSize = 56.dp
     val horizontalSpacerSize = 24.dp
     val verticalSpacerSize = 12.dp
 

@@ -1,3 +1,5 @@
+package com.example.tetrisapp.feature_game.domain.usecase
+
 import com.example.tetrisapp.feature_game.domain.entity.Cell
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 

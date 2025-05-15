@@ -1,6 +1,5 @@
 package com.example.tetrisapp.feature_game.domain.entity
 
-import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.model.MinoType
 import com.example.tetrisapp.feature_game.domain.model.TetriMinoType
 
@@ -9,8 +8,8 @@ data class TetriMino(
     private val _position: Pair<Int, Int> = Pair(3, 0),
     private val _rotation: Int = 0,
     private val _type: MinoType
-): TetriMinoType {
-    override val position: Pair<Int,Int>
+) : TetriMinoType {
+    override val position: Pair<Int, Int>
         get() = _position
     override val rotation: Int
         get() = _rotation

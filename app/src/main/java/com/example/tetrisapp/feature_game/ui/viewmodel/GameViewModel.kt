@@ -1,14 +1,13 @@
 package com.example.tetrisapp.feature_game.ui.viewmodel
 
-import GenerateLockCellsUseCase
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.example.tetrisapp.feature_game.data.GameRepositoryImpl
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
+import com.example.tetrisapp.feature_game.domain.usecase.GenerateLockCellsUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.game_manager.CalculateScoreUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.game_manager.CheckAndClearLinesUseCase
 import com.example.tetrisapp.feature_game.domain.usecase.game_manager.LoadHighScoreUseCase
@@ -44,6 +43,7 @@ class GameViewModel(
     private val checkCollisionYUseCase: CheckCollisionYUseCase = CheckCollisionYUseCase(),
     private val spawnMinoUseCase: SpawnMinoUseCase = SpawnMinoUseCase(),
     private val computeGhostMinoUseCase: ComputeGhostMinoUseCase = ComputeGhostMinoUseCase(),
+    private val generateLockCellsUseCase: GenerateLockCellsUseCase = GenerateLockCellsUseCase(),
     private val processPlacementUseCase: ProcessPlacementUseCase = ProcessPlacementUseCase(
         clearLines = CheckAndClearLinesUseCase(),
         checkTSpin = CheckIsTSpinUseCase(),
@@ -57,11 +57,10 @@ class GameViewModel(
     private val rotateMinoUseCase: RotateMinoUseCase = RotateMinoUseCase(
         checkCollisionY = CheckCollisionYUseCase()
     ),
-    private val generateLockCellsUseCase: GenerateLockCellsUseCase = GenerateLockCellsUseCase(),
     private val softDropUseCase: SoftDropUseCase = SoftDropUseCase(
         checkCollisionY = CheckCollisionYUseCase()
     ),
-    application: Application,
+    val application: Application,
 ) : AndroidViewModel(application = application) {
     val state = MutableStateFlow(GameViewModelState())
 
