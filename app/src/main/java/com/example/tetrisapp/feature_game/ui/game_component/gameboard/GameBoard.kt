@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.ui.game_component
+package com.example.tetrisapp.feature_game.ui.game_component.gameboard
 
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
+import com.example.tetrisapp.feature_game.ui.game_component.template.MinoBlock
 import kotlin.math.roundToInt
 
 @Composable

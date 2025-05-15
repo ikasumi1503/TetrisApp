@@ -1,7 +1,8 @@
-package com.example.tetrisapp.feature_game.ui.game_component
+package com.example.tetrisapp.feature_game.ui.game_component.gameboard
 
 import androidx.compose.runtime.Composable
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
+import com.example.tetrisapp.feature_game.ui.game_component.template.MinoBlock
 
 @Composable
 fun GhostMino(isInitialized: Boolean, ghostMino: TetriMino) {

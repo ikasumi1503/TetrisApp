@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.ui.game_component
+package com.example.tetrisapp.feature_game.ui.game_component.gamestatsgroup
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.example.tetrisapp.feature_game.domain.model.MinoType
+import com.example.tetrisapp.feature_game.ui.game_component.template.MinoBlock
 
 @Composable
 fun NextMino(

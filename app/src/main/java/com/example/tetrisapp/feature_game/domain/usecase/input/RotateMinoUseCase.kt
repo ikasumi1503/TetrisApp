@@ -1,8 +1,9 @@
-package com.example.tetrisapp.feature_game.domain.usecase
+package com.example.tetrisapp.feature_game.domain.usecase.input
 
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.model.MinoType
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckCollisionYUseCase
 import com.example.tetrisapp.feature_game.util.GameConstants
 
 data class RotateMinoResult(

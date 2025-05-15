@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.tetrisapp.feature_game.ui.game_component.GameMenuButton
+import com.example.tetrisapp.feature_game.ui.game_component.template.GameMenuButtonTemplate
 import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 @Composable
@@ -49,7 +49,7 @@ fun MenuScreen(gameViewModel: GameViewModel, onStartGame: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(text = "最高得点: ${state.value.highScore}")
-                GameMenuButton(
+                GameMenuButtonTemplate(
                     onClick = { onStartGame() },
                     text = "ゲームスタート"
                 )

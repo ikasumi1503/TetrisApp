@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.tetrisapp.feature_game.ui.game_component.GameMenuButton
+import com.example.tetrisapp.feature_game.ui.game_component.template.GameMenuButtonTemplate
 import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 @Composable
@@ -50,11 +50,11 @@ fun GameOverScreen(gameViewModel: GameViewModel) {
                 Text(text = "スコア: ${gameState.value.score}")
                 Text(text = "最高スコア: ${gameState.value.highScore}")
 
-                GameMenuButton(
+                GameMenuButtonTemplate(
                     onClick = { gameViewModel.changeToMenu() },
                     text = "メニューに戻る"
                 )
-                GameMenuButton(
+                GameMenuButtonTemplate(
                     onClick = {
                         gameViewModel.initGame()
                         gameViewModel.setScreenState(ScreenState.Game)

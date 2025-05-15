@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.ui.game_component
+package com.example.tetrisapp.feature_game.ui.game_component.template
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun GameMenuButton(
+fun GameMenuButtonTemplate(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier

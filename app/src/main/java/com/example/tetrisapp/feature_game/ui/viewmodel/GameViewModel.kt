@@ -2,27 +2,29 @@ package com.example.tetrisapp.feature_game.ui.viewmodel
 
 import GenerateLockCellsUseCase
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import com.example.tetrisapp.feature_game.data.GameRepositoryImpl
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
-import com.example.tetrisapp.feature_game.domain.usecase.CalculateScoreUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckAndClearLinesUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionXUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckCollisionYUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckGameOverUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.CheckIsTSpinUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.ComputeGhostMinoUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.MoveXUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.ProcessPlacementUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.RotateMinoUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.SideX
-import com.example.tetrisapp.feature_game.domain.usecase.SideXToNumUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.SoftDropUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.SpawnMinoUseCase
-import com.example.tetrisapp.feature_game.domain.usecase.SwapHoldUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.game_manager.CalculateScoreUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.game_manager.CheckAndClearLinesUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.game_manager.LoadHighScoreUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.game_manager.SaveHighScoreUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.input.MoveXUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.input.RotateMinoUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.input.SideX
+import com.example.tetrisapp.feature_game.domain.usecase.input.SideXToNumUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.input.SwapHoldUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckCollisionXUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckCollisionYUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckIsTSpinUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.ComputeGhostMinoUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.ProcessPlacementUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.SoftDropUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.SpawnMinoUseCase
 import com.example.tetrisapp.feature_game.ui.ScreenState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,14 +39,10 @@ import kotlinx.coroutines.launch
 //　ViewModelの役割は？
 // 状態の管理。uiが欲しい状態を整えてあげる中間役。
 
-// TODO: UseCaseの中でUseCaseを使っているときがあるので、直しておく
 class GameViewModel(
     private val swapHoldUseCase: SwapHoldUseCase = SwapHoldUseCase(),
     private val checkCollisionYUseCase: CheckCollisionYUseCase = CheckCollisionYUseCase(),
     private val spawnMinoUseCase: SpawnMinoUseCase = SpawnMinoUseCase(),
-    private val checkGameOverUseCase: CheckGameOverUseCase = CheckGameOverUseCase(
-        checkCollisionY = checkCollisionYUseCase
-    ),
     private val computeGhostMinoUseCase: ComputeGhostMinoUseCase = ComputeGhostMinoUseCase(),
     private val processPlacementUseCase: ProcessPlacementUseCase = ProcessPlacementUseCase(
         clearLines = CheckAndClearLinesUseCase(),
@@ -63,7 +61,6 @@ class GameViewModel(
     private val softDropUseCase: SoftDropUseCase = SoftDropUseCase(
         checkCollisionY = CheckCollisionYUseCase()
     ),
-
     application: Application,
 ) : AndroidViewModel(application = application) {
     val state = MutableStateFlow(GameViewModelState())
@@ -83,6 +80,7 @@ class GameViewModel(
     // ②実際の処理の内容はUseCaseに書いていく
     // ③UseCase内でUseCaseを使わないようにしていく
     // ④UseCaseを定義するなら、viewModelのfunの中の順次処理の部品をまとめる要領で書く
+    // ⑤どうしてもViewModelの中やUseCaseの中でまとめたい処理があるならドメイン層のutilsの中に入れておいてもいいかも
 
     // !!は使わない方向
     // UseCase内でviewModelの関数を使わないようにしている
@@ -143,8 +141,15 @@ class GameViewModel(
     private fun checkGameOverAndEnd() {
         // state.value から現在のボードとテトリミノを取得
         val board = state.value.board
-        val mino = state.value.tetriMino
-        if (checkGameOverUseCase(board, mino)) {
+        val minoPosition = state.value.tetriMino.position
+        val mino = state.value.tetriMino.copy(
+            _position = Pair(
+                minoPosition.first,
+                minoPosition.second - 1
+            )
+        )
+
+        if (checkCollisionYUseCase(board, mino)) {
             endGame()
         }
     }
@@ -216,20 +221,18 @@ class GameViewModel(
         }
     }
 
-    // TODO: これRepositoryの中に入れた方がいい
     private fun loadHighScore(): Int {
-        val context: Context = getApplication<Application>().applicationContext
-        val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
-        return prefs.getInt("high_score", 0)
+        val context = application.applicationContext
+        val repository = GameRepositoryImpl(context)
+        val loadHighScoreUseCase = LoadHighScoreUseCase(repository)
+        return loadHighScoreUseCase()
     }
 
     private fun saveHighScore(score: Int) {
-        val context: Context = getApplication<Application>().applicationContext
-        // ここで保持されたデータはアプリを終了しても残るみたい
-        // また、再ビルドしてもデータが残る
-        // ただし、アンインストールしたりキャッシュを削除すると消える
-        val prefs = context.getSharedPreferences("tetris_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putInt("high_score", score).apply()
+        val context = application.applicationContext
+        val repository = GameRepositoryImpl(context)
+        val saveHighScoreUseCase = SaveHighScoreUseCase(repository)
+        saveHighScoreUseCase(score = score)
     }
 
     fun onMoveX(sideX: SideX) {
@@ -396,7 +399,6 @@ class GameViewModel(
         // レベルを1上げる
         // そのときの落下スピードを決める
 
-        // TODO: もしもすぐ下に壁やミノがあるなら時間延長したい
         if (currentDelay >= delayLimit) {
             // 壁への当たり判定
             val willCollideY: Boolean = checkCollisionYUseCase(board = board, mino = mino)
@@ -411,8 +413,8 @@ class GameViewModel(
                 // 早すぎると移動の前にミノが固定されてしまうので、防止する
                 val isGrounded: Boolean =
                     checkCollisionYUseCase(board = state.value.board, mino = state.value.tetriMino)
-                if (isGrounded && delayLimit < 200) {
-                    state.update { it.copy(delayLimit = 200) }
+                if (isGrounded && delayLimit < 300) {
+                    state.update { it.copy(delayLimit = 300) }
                 }
             }
 

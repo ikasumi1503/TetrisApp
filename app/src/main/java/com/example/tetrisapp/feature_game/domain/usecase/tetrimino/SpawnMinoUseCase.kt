@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.domain.usecase
+package com.example.tetrisapp.feature_game.domain.usecase.tetrimino
 
 import com.example.tetrisapp.feature_game.domain.entity.TetriMinoList
 import com.example.tetrisapp.feature_game.domain.model.MinoType

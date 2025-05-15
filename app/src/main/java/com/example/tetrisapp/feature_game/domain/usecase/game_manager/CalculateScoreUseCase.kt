@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.domain.usecase
+package com.example.tetrisapp.feature_game.domain.usecase.game_manager
 
 class CalculateScoreUseCase {
     data class Result(

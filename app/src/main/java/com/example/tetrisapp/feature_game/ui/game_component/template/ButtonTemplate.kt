@@ -1,4 +1,4 @@
-package com.example.tetrisapp.feature_game.ui.game_component
+package com.example.tetrisapp.feature_game.ui.game_component.template
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

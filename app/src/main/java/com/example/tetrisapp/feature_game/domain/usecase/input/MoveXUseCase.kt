@@ -1,7 +1,9 @@
-package com.example.tetrisapp.feature_game.domain.usecase
+package com.example.tetrisapp.feature_game.domain.usecase.input
 
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckCollisionXUseCase
+import com.example.tetrisapp.feature_game.domain.usecase.tetrimino.CheckCollisionYUseCase
 
 data class MoveXResult(
     val movedMino: TetriMino?,      // 当たってなければ新ポジション、当たってたら null

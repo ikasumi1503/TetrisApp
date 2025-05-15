@@ -22,11 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.tetrisapp.feature_game.domain.usecase.SideX
-import com.example.tetrisapp.feature_game.ui.game_component.GameBoard
-import com.example.tetrisapp.feature_game.ui.game_component.GameButtonGroup
-import com.example.tetrisapp.feature_game.ui.game_component.GameStatsGroup
-import com.example.tetrisapp.feature_game.ui.game_component.PauseButton
+import com.example.tetrisapp.feature_game.domain.usecase.input.SideX
+import com.example.tetrisapp.feature_game.ui.game_component.KeyBoardEvents
+import com.example.tetrisapp.feature_game.ui.game_component.gameboard.GameBoard
+import com.example.tetrisapp.feature_game.ui.game_component.gamebuttongroup.GameButtonGroup
+import com.example.tetrisapp.feature_game.ui.game_component.gamebuttongroup.PauseButton
+import com.example.tetrisapp.feature_game.ui.game_component.gamestatsgroup.GameStatsGroup
 import com.example.tetrisapp.feature_game.ui.viewmodel.GameViewModel
 
 
@@ -67,6 +68,8 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
             }
         }
     }
+
+    KeyBoardEvents(gameViewModel, ghostMino, mino)
 
     Column(
         modifier = Modifier.fillMaxSize(),

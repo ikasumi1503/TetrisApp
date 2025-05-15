@@ -1,5 +1,5 @@
 // domain/usecase/SoftDropUseCase.kt
-package com.example.tetrisapp.feature_game.domain.usecase
+package com.example.tetrisapp.feature_game.domain.usecase.tetrimino
 
 import com.example.tetrisapp.feature_game.domain.entity.Board
 import com.example.tetrisapp.feature_game.domain.entity.TetriMino
