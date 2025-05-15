@@ -2,6 +2,7 @@ package com.example.tetrisapp.feature_game.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.example.tetrisapp.feature_game.data.GameRepositoryImpl
 import com.example.tetrisapp.feature_game.domain.entity.Board
@@ -60,7 +61,7 @@ class GameViewModel(
     private val softDropUseCase: SoftDropUseCase = SoftDropUseCase(
         checkCollisionY = CheckCollisionYUseCase()
     ),
-    val application: Application,
+    application: Application,
 ) : AndroidViewModel(application = application) {
     val state = MutableStateFlow(GameViewModelState())
 
