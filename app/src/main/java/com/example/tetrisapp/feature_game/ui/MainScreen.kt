@@ -40,7 +40,7 @@ fun MainScreen() {
     ) {
         // Imageを最初に置くと、後から入る要素は上に重ねられていく
         Image(
-            painter = painterResource(id = R.drawable.space_background),
+            painter = painterResource(id = R.drawable.pia07906_large),
             contentDescription = null,
             // ContentScale.Crop ... 縦横比を保ちつつ、View全体を覆うように拡大・切り取りする
             contentScale = ContentScale.Crop,
